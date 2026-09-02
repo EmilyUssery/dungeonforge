@@ -1,0 +1,16 @@
+target/
+out/
+build/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+saves/
+.idea/
+*.iml
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+.DS_Store
+Thumbs.db
