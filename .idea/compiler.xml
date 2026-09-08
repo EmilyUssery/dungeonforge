@@ -9,5 +9,8 @@
         <module name="dungeonforge" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="dungeonforge (1)" target="1.8" />
+    </bytecodeTargetLevel>
   </component>
 </project>
