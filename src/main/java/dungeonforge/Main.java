@@ -16,7 +16,7 @@ public final class Main {
     /** Bumped every sprint. Week 3 replaces this with the GameConfig singleton. */
     public static final String VERSION = "0.1.0";
 
-    private Main() { }
+    private Main()  {
 
     public static String banner() {
         return """
