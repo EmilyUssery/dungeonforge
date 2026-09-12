@@ -66,14 +66,17 @@ diff after1.txt after2.txt && echo "IDENTICAL"
 
 **Result:**
 
-```
+```IDENTICAL — Compare-Object between after1.txt and after2.txt (both run with seed 42) returned zero differences.
 
 ```
 
 **Now a different seed (AC4). Paste enough to show the world changed:**
 
 ```
-
+Seed 42: Total monsters: 18
+Seed 7:  Total monsters: 30
+(Dungeon layouts, monster placements, and stats were completely different between the two seeds.)
+```
 ```
 
 ## 4. AFTER — US-1.3, the rule is enforced

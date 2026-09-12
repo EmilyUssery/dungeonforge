@@ -2,17 +2,15 @@ package dungeonforge.core;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
+
+import dungeonforge.config.RandomSource;
 
 /**
  * WEEK 1 -- one room of the dungeon.
  *
- * TODO(week 3, US-1.2): randomness source #2 of 3.
+ * WEEK 3 (US-1.2): randomness now comes from the single shared RandomSource.
  */
 public class Room {
-
-    /** Randomness source #2 of 3. */
-    private final Random rng = new Random();
 
     private static final String[] FLAVORS = {
         "Damp stone. Something drips in the dark, patiently.",
@@ -27,7 +25,7 @@ public class Room {
 
     public Room(String id) {
         this.id = id;
-        this.flavor = FLAVORS[rng.nextInt(FLAVORS.length)];
+        this.flavor = FLAVORS[RandomSource.getInstance().nextInt(FLAVORS.length)];
     }
 
     public String getId()               { return id; }
