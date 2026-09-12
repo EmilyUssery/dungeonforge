@@ -4,18 +4,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import dungeonforge.config.GameConfig;
+
 /**
  * WEEK 1 -- the world.
  *
- * TODO(week 3, US-1.1): dungeonDepth, roomsPerLevel and maxMonstersPerRoom are hardcoded.
- * TODO(week 3, US-1.2): randomness source #3 of 3.
+ * WEEK 3 (US-1.1): dungeonDepth, roomsPerLevel, and maxMonstersPerRoom now come
+ * from GameConfig.
  *
- * Run this program twice. You get a different dungeon each time, and there is no way to
- * ask for the one you saw before. That is the problem US-1.2 exists to solve.
+ * WEEK 3 (US-1.2): this Random will be replaced with RandomSource next.
  */
 public class GameWorld {
 
-    /** Randomness source #3 of 3. */
+    /** Randomness source #3 of 3 -- replaced by RandomSource in US-1.2. */
     private final Random random = new Random();
 
     private final Player player;
@@ -27,9 +28,9 @@ public class GameWorld {
     }
 
     private void generate() {
-        int dungeonDepth = 3;         // hardcoded
-        int roomsPerLevel = 8;        // hardcoded
-        int maxMonstersPerRoom = 2;   // hardcoded
+        int dungeonDepth = GameConfig.getInstance().getInt("dungeonDepth");
+        int roomsPerLevel = GameConfig.getInstance().getInt("roomsPerLevel");
+        int maxMonstersPerRoom = GameConfig.getInstance().getInt("maxMonstersPerRoom");
 
         for (int d = 1; d <= dungeonDepth; d++) {
             DungeonLevel level = new DungeonLevel(d);
