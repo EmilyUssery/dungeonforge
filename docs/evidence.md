@@ -83,7 +83,14 @@ Seed 7:  Total monsters: 30
 
 **Paste your `mvn test` summary:**
 
-```
+```[INFO] Running dungeonforge.SingletonTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.084 s -- in dungeonforge.SingletonTest
+[INFO] Running dungeonforge.SkeletonTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s -- in dungeonforge.SkeletonTest
+[INFO] 
+[INFO] Results:
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
 
 ```
 
