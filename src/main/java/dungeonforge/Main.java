@@ -1,5 +1,6 @@
 package dungeonforge;
 
+import dungeonforge.config.RandomSource;
 import dungeonforge.core.DungeonLevel;
 import dungeonforge.core.GameWorld;
 import dungeonforge.core.Monster;
@@ -9,15 +10,8 @@ import dungeonforge.core.Room;
 /**
  * WEEK 2 -- the walking skeleton, now running a small demo of the Week 1 domain.
  *
- * WEEK 3 EXERCISE, and do this FIRST, before you write any code:
- *
- *     mvn -q exec:java > run1.txt
- *     mvn -q exec:java > run2.txt
- *     diff run1.txt run2.txt
- *
- * The two runs differ, and there is no way to ask for the dungeon you saw the first time.
- * That is the concrete problem this week's pattern solves. Save the diff -- your Definition
- * of Done asks for evidence.
+ * WEEK 3 (US-1.1, US-1.2): tunable values and randomness now come from
+ * GameConfig and RandomSource. Pass --seed=N to reproduce a specific dungeon.
  */
 public final class Main {
 
@@ -38,7 +32,27 @@ public final class Main {
         System.out.println("  version " + VERSION);
         System.out.println();
 
-        Player player = new Player(args.length > 0 ? args[0] : "Delver");
+        String playerName = "Delver";
+        Long seedOverride = null;
+
+        for (String arg : args) {
+            if (arg.startsWith("--seed=")) {
+                seedOverride = Long.parseLong(arg.substring("--seed=".length()));
+            } else {
+                playerName = arg;
+            }
+        }
+
+        if (seedOverride != null) {
+            RandomSource.getInstance().reseed(seedOverride);
+        }
+
+        System.out.println("  seed: " + (seedOverride != null
+                ? seedOverride
+                : "default (see config.json)"));
+        System.out.println();
+
+        Player player = new Player(playerName);
         GameWorld world = new GameWorld(player);
 
         System.out.println(player.describe());
