@@ -62,14 +62,11 @@ remembering the next time your own sprint doesn't fit.
 
 | Story | Estimated | Actual hours | High, low, or about right? |
 |---|---|---|---|
-| US-1.1 | 3 | | |
-| US-1.2 | 3 | | |
-| US-1.3 | 2 | | |
+| US-1.1 | 3 | 2.5 | About right |
+| US-1.2 | 3 | 3.5 | Slightly high — the --seed flag and diffing multiple test runs took longer than expected |
+| US-1.3 | 2 | 1.5 | About right |
 
-**Points completed:** ____ · **Sprint 0 velocity for comparison:** ____
+**Points completed:** 8 · **Sprint 0 velocity for comparison:** not recorded
+ (Sprint 0's calibration table was left blank)
 
-## Sprint Review — one sentence
-
-> What can the project do now that it could not do last week?
-
-
+> The dungeon can now be exactly reproduced from a seed — a bug report like "the boss room on level 2 was empty" can finally be recreated and debugged, which was completely impossible last week.
