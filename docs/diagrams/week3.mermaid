@@ -1,0 +1,128 @@
+classDiagram
+    class Entity {
+        <<abstract>>
+        #String name
+        #int hp
+        #int maxHp
+        #int attackPower
+        #int defense
+        +getName() String
+        +getHp() int
+        +getMaxHp() int
+        +getAttackPower() int
+        +getDefense() int
+        +isAlive() boolean
+        +takeDamage(int amount) void
+        +heal(int amount) void
+        +describe()* String
+    }
+
+    class Player {
+        -int gold
+        -int xp
+        +Player(String name)
+        +getGold() int
+        +getXp() int
+        +addGold(int g) void
+        +addXp(int x) void
+        +carryCapacity() double
+        +describe() String
+    }
+
+    class Monster {
+        -String species
+        -int xpReward
+        +Monster(String species, int baseHp, int baseAttack, int xpReward)
+        +getSpecies() String
+        +getXpReward() int
+        +describe() String
+    }
+
+    class Room {
+        -String id
+        -String flavor
+        -List~Monster~ monsters
+        +Room(String id)
+        +getId() String
+        +getFlavor() String
+        +getMonsters() List~Monster~
+        +addMonster(Monster m) void
+    }
+
+    class DungeonLevel {
+        -int depth
+        -List~Room~ rooms
+        +DungeonLevel(int depth)
+        +getDepth() int
+        +getRooms() List~Room~
+        +addRoom(Room r) void
+    }
+
+    class GameWorld {
+        -Player player
+        -List~DungeonLevel~ levels
+        +GameWorld(Player player)
+        +getPlayer() Player
+        +getLevels() List~DungeonLevel~
+        +totalMonsters() int
+        -generate() void
+        -spawn(int depth) Monster
+    }
+
+    class GameConfig {
+        <<Singleton>>
+        -static GameConfig instance
+        -Map~String,Object~ defaults
+        -Map~String,Object~ settings
+        -GameConfig()
+        +static getInstance() GameConfig
+        +static resetForTests() void
+        +getInt(String key) int
+        +getDouble(String key) double
+        +getLong(String key) long
+        -loadDefaults() void
+        -loadFromFile() void
+    }
+
+    class RandomSource {
+        <<Singleton>>
+        -static RandomSource instance
+        -Random random
+        -RandomSource()
+        +static getInstance() RandomSource
+        +static resetForTests() void
+        +reseed(long seed) void
+        +nextInt(int bound) int
+    }
+
+    class Json {
+        -String s
+        -int i
+        -Json(String s)
+        +static parseObject(String text) Map~String,Object~
+    }
+
+    class Main {
+        +static String VERSION
+        +static banner() String
+        +static main(String[] args) void
+    }
+
+    Entity <|-- Player
+    Entity <|-- Monster
+
+    GameWorld "1" *-- "1" Player : owns
+    GameWorld "1" *-- "3" DungeonLevel : generates
+    DungeonLevel "1" *-- "8" Room : contains
+    Room "1" o-- "0..*" Monster : holds
+
+    GameWorld ..> GameConfig : reads config
+    GameWorld ..> RandomSource : uses randomness
+    Player ..> GameConfig : reads config
+    Monster ..> RandomSource : uses randomness
+    Room ..> RandomSource : uses randomness
+
+    GameConfig ..> Json : parses config.json
+    Main ..> GameWorld : creates
+    Main ..> Player : creates
+    Main ..> RandomSource : reseeds
