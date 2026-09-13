@@ -1,20 +1,21 @@
 package dungeonforge;
 
+import dungeonforge.config.RandomSource;
+import dungeonforge.core.DungeonLevel;
+import dungeonforge.core.GameWorld;
+import dungeonforge.core.Monster;
+import dungeonforge.core.Player;
+import dungeonforge.core.Room;
+
 /**
- * WEEK 2 -- THE WALKING SKELETON.
+ * WEEK 2 -- the walking skeleton, now running a small demo of the Week 1 domain.
  *
- * This program does almost nothing, and that is the entire point.
- *
- * A walking skeleton is the smallest thing that exercises your whole pipeline:
- * source -> compile -> test -> CI -> merge -> tag. When this runs green, you know
- * the MACHINE works. Every failure after today is your code, not your setup.
- *
- * From Week 3 this file grows into the real game. Do not delete it.
+ * WEEK 3 (US-1.1, US-1.2): tunable values and randomness now come from
+ * GameConfig and RandomSource. Pass --seed=N to reproduce a specific dungeon.
  */
 public final class Main {
 
-    /** Bumped every sprint. Week 3 replaces this with the GameConfig singleton. */
-    public static final String VERSION = "0.1.0";
+    public static final String VERSION = "0.2.0";
 
     private Main() { }
 
@@ -26,17 +27,50 @@ public final class Main {
                 =========================================""";
     }
 
-    public static String greeting(String name) {
-        if (name == null || name.isBlank()) {
-            name = "Delver";
-        }
-        return "Welcome, " + name + ". The dungeon is not built yet. That starts in Week 3.";
-    }
-
     public static void main(String[] args) {
         System.out.println(banner());
         System.out.println("  version " + VERSION);
         System.out.println();
-        System.out.println(greeting(args.length > 0 ? args[0] : null));
+
+        String playerName = "Delver";
+        Long seedOverride = null;
+
+        for (String arg : args) {
+            if (arg.startsWith("--seed=")) {
+                seedOverride = Long.parseLong(arg.substring("--seed=".length()));
+            } else {
+                playerName = arg;
+            }
+        }
+
+        if (seedOverride != null) {
+            RandomSource.getInstance().reseed(seedOverride);
+        }
+
+        System.out.println("  seed: " + (seedOverride != null
+                ? seedOverride
+                : "default (see config.json)"));
+        System.out.println();
+
+        Player player = new Player(playerName);
+        GameWorld world = new GameWorld(player);
+
+        System.out.println(player.describe());
+        System.out.println();
+
+        for (DungeonLevel level : world.getLevels()) {
+            System.out.println("-- Level " + level.getDepth() + " --");
+            for (Room room : level.getRooms()) {
+                StringBuilder line = new StringBuilder("  " + room.getId() + ": ");
+                if (room.getMonsters().isEmpty()) {
+                    line.append("(empty)");
+                } else {
+                    for (Monster m : room.getMonsters()) line.append(m.describe()).append("  ");
+                }
+                System.out.println(line.toString().trim());
+            }
+        }
+        System.out.println();
+        System.out.println("Total monsters: " + world.totalMonsters());
     }
 }

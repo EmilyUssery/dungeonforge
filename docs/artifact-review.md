@@ -27,13 +27,17 @@ what it claims to be.
 
 ### Flaw 1 — in `docs/backlog.md`
 
-**Which item:**
+**Which item:** Us-1-4
 
 **What's wrong with it:**
-
 **Which INVEST letter(s) it violates, and how:**
+N: violates negotiable. Tells developer to use a MashMap with double-locking
+V: Subjective professional code!! Subjective to the developer
+T:  No "More Professional code" is subjective.
 
 **My repaired version:**
+Pick a real benefictiary and define in measureable terms what code is.
+The performance of this code increases by 5%.
 
 ```
 As a ...,
@@ -49,21 +53,27 @@ Acceptance Criteria
 
 ### Flaw 2 — in `docs/definition-of-done.md`
 
-**Which checkbox:**
+**Which checkbox:** 
+"The code is well written... checkbox"
 
 **Why it can't actually be checked:**
+It is an opinion not unambiguous check that cab be verified by a machine.
 
 **My replacement, phrased so that it can be:**
-
+Every public class has a comment stating why it exists.
+All code standards are verified, naming conventions, code blocks.
 ---
 
 ### Flaw 3 — in `docs/sprint-01-plan.md`
 
 **Which item:**
+I might be busy this week.
 
 **Why it isn't really what the document calls it:**
+This risk can't br mitigated and is a forever risk.
 
 **My repaired version, including a mitigation someone could actually act on:**
+Tuesday and Wednesday are unavailable, so 3 of the 8 points must be done by Monday 
 
 ---
 
@@ -79,21 +89,30 @@ sentences.
 ### Strong story 1: ______
 
 **INVEST letters it satisfies especially well:**
+Testable: All 4 acceptance criteria can be checked by a machine. 
+Valuable: The so that.. bug can be reproduced is very valuable.
 
 **What specifically makes its acceptance criteria checkable:**
+There no 
+opinions in the acceptance criteria, one is a boolean yes/no check.
+another is a existance check or absence check. This is easily machin verifiable
+### Strong story 2: ______ US-1.1
+**INVEST letters it satisfies especially well:**
+Negotiable: States its need, but leaves the implementation up to the developer
+Valuable: strictly names the game designer as the beneficiary.
 
-### Strong story 2: ______
+ 
+**What specifically makes its acceptance criteria checkable:**
+Acceptance criteria sets playwe point to 80, this is machine checkable 
+### Strong story 3: ______S0.2
+
 
 **INVEST letters it satisfies especially well:**
+small: quick points and 1 workflow file
+Independent: Only repo is necessary for this US
 
 **What specifically makes its acceptance criteria checkable:**
-
-### Strong story 3: ______
-
-**INVEST letters it satisfies especially well:**
-
-**What specifically makes its acceptance criteria checkable:**
-
+Easily verifiable by machine (i.e. verfied with screenshots)
 ---
 
 ## C3 — Trace a story to code · 4 pts
@@ -103,14 +122,14 @@ what you'd expect to see in the pull-request diff when this story is done, and w
 acceptance criterion each piece satisfies.
 
 | What I'd expect in the diff | Which acceptance criterion it satisfies |
-|---|---|
-|  |  |
-|  |  |
-|  |  |
-|  |  |
-
+|-----------------------------|-----------------------------------------|
+| config.json                 | AC1                                     |
+| Config.class                | AC3                                     |
+| GameWorld                   | AC2                                     |
+| Main                        | AC1                                     |
+   GetInstance Method            AC1
 **One sentence: how did the acceptance criteria help you predict the shape of the work?**
-
+Acceptance criteria stated a need that dictated the creation of a class or type.
 ---
 
 ## C4 — The bonus catch · up to +3 bonus
