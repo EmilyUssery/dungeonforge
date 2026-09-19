@@ -1,104 +1,70 @@
-# Week 3 Evidence — the before-and-after
-
-> Your Definition of Done asks for evidence that the acceptance criteria are met. This file
-> is where it goes. Fill it in as you work, not at the end.
-
-## 1. BEFORE — the problem, demonstrated
-
-Do this **before writing any code**:
-
-```bash
-mvn -q exec:java > run1.txt
-mvn -q exec:java > run2.txt
-diff run1.txt run2.txt
-```
-
-**Paste a few lines of the diff:**
-L1R0: Skeleton (16/16 HP, ATK 5)                                 
-L1R0: (empty)                                                    
-
-Total monsters: 26
-Total monsters: 24
-```
-
-```
-
-**How many separate `Random` objects did you find in the starter?** __3__
-(`grep -rn "new Random(" src/main/java`)
-
-**In one sentence: why does that make a bug report like "the boss room on level 2 was empty"
-impossible for me to act on?**
-Because there's no way to reproduce the exact dungeon layout the tester saw — every run generates a completely different arrangement of rooms and monsters, so I can't recreate the specific "empty boss room" scenario to debug it.
+\## Question 1: Which species appear in level 1, and which on level 3?
 
 
-## 2. AFTER — US-1.1, settings live in one place
 
-```bash
-grep -rn "playerStartingHp\|60\|new Random(" src/main/java/dungeonforge/core
-```
+Level 1: Skeleton, Bone Priest, Crypt Rat, Wight
 
-**Paste the output. AC2 wants zero hardcoded literals outside the config class:**
-(no output — Select-String -Pattern "60" against src\main\java\dungeonforge\core returned zero matches)
-```
-
-```
-
-**Change `playerStartingHp` in `config.json` to 200, run, and paste the player line:**
-
-``Delver  HP 200/200  ATK 8  DEF 2  Gold 0  XP 0  Carry 60.0kg
-
-```
-
-**Rename `config.json` to `config.json.bak`, run again, and paste what happens (AC4):**
-
-```
-Delver  HP 60/60  ATK 8  DEF 2  Gold 0  XP 0  Carry 60.0kg
-(Game ran normally using GameConfig's built-in defaults instead of crashing.)
-```
-
-## 3. AFTER — US-1.2, the same seed produces the same dungeon
-
-```bash
-mvn -q exec:java > after1.txt
-mvn -q exec:java > after2.txt
-diff after1.txt after2.txt && echo "IDENTICAL"
-```
-
-**Result:**
-
-```IDENTICAL — Compare-Object between after1.txt and after2.txt (both run with seed 42) returned zero differences.
-
-```
-
-**Now a different seed (AC4). Paste enough to show the world changed:**
-
-```
-Seed 42: Total monsters: 18
-Seed 7:  Total monsters: 30
-(Dungeon layouts, monster placements, and stats were completely different between the two seeds.)
-```
-```
-
-## 4. AFTER — US-1.3, the rule is enforced
-
-**Paste your `mvn test` summary:**
-
-```[INFO] Running dungeonforge.SingletonTest
-[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.084 s -- in dungeonforge.SingletonTest
-[INFO] Running dungeonforge.SkeletonTest
-[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s -- in dungeonforge.SkeletonTest
-[INFO] 
-[INFO] Results:
-[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0
-[INFO] BUILD SUCCESS
-
-```
-
-**Paste the URL of the green CI check on your pull request:**
+Level 3: Bone Priest, Crypt Rat, Wight, Grave Moth
 
 
-## 5. The one-line summary for your Sprint Review
 
-> What can the project do now that it could not do last week?
+The same pool of crypt-themed monster species appears at every level.
 
+Descending levels does not change \*which\* monsters can spawn — it only
+
+scales their stats. For example, Bone Priest has 21-22 HP at Level 1
+
+but 26-29 HP at Level 3, and attack rises similarly (ATK 4-6 on L1 vs
+
+ATK 6-8 on L3). This confirms the level number affects monster
+
+difficulty, not monster variety or theme.
+
+
+
+\## FLAVORS problem
+
+
+
+Room.java has a hardcoded FLAVORS array with 4 crypt-themed lines:
+
+
+
+&#x20;   "Damp stone. Something drips in the dark, patiently."
+
+&#x20;   "Burial niches line the walls. Most are empty. Most."
+
+&#x20;   "The air tastes of old dust and older grief."
+
+&#x20;   "Your footsteps come back a half-second late."
+
+
+
+Every Room picks randomly from this single fixed list, regardless of
+
+which level or biome it belongs to. Since our monster data includes
+
+both crypt monsters (skeleton, wight, bone\_priest) and forge monsters
+
+(forge\_golem, ember\_sprite, slag\_hound), a forge-themed room would
+
+still describe itself using crypt flavor text like "damp stone" and
+
+"burial niches" -- it has no way to know it should sound like a hot,
+
+industrial forge instead of a cold tomb.
+
+
+
+This is the same kind of problem MonsterFactory already solves for
+
+monsters: instead of one class deciding everything directly, a
+
+factory can return the correct themed object based on context. Room
+
+needs the same fix -- a factory that returns flavor text (or a themed
+
+room) matching the level's actual biome, instead of one hardcoded
+
+crypt-only array.
 

@@ -5,6 +5,8 @@ import java.util.List;
 
 import dungeonforge.config.GameConfig;
 import dungeonforge.config.RandomSource;
+import dungeonforge.factory.MonsterDef;
+import dungeonforge.factory.MonsterFactory;
 
 /**
  * WEEK 1 -- the world.
@@ -13,11 +15,15 @@ import dungeonforge.config.RandomSource;
  * from GameConfig.
  *
  * WEEK 3 (US-1.2): randomness now comes from the single shared RandomSource.
+ *
+ * WEEK 4 (US-2.1): monsters now come from MonsterFactory/monsters.json, not a
+ * hardcoded species list. spawn() is gone.
  */
 public class GameWorld {
 
     private final Player player;
     private final List<DungeonLevel> levels = new ArrayList<>();
+    private final MonsterFactory monsterFactory = new MonsterFactory();
 
     public GameWorld(Player player) {
         this.player = player;
@@ -35,7 +41,7 @@ public class GameWorld {
                 Room room = new Room("L" + d + "R" + r);
                 int count = RandomSource.getInstance().nextInt(maxMonstersPerRoom + 1);
                 for (int m = 0; m < count; m++) {
-                    room.addMonster(spawn(d));
+                    room.addMonster(pickMonster(d));
                 }
                 level.addRoom(room);
             }
@@ -43,10 +49,10 @@ public class GameWorld {
         }
     }
 
-    private Monster spawn(int depth) {
-        String[] species = {"Skeleton", "Crypt Rat", "Wight", "Bone Priest"};
-        String pick = species[RandomSource.getInstance().nextInt(species.length)];
-        return new Monster(pick, 12 + depth * 4, 4 + depth, 6 + depth * 3);
+    private Monster pickMonster(int depth) {
+        List<MonsterDef> pool = monsterFactory.getByTheme("crypt", false);
+        MonsterDef chosen = pool.get(RandomSource.getInstance().nextInt(pool.size()));
+        return monsterFactory.create(chosen.getId(), depth);
     }
 
     public Player getPlayer()             { return player; }
