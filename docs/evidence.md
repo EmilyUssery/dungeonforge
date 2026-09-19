@@ -22,6 +22,34 @@ difficulty, not monster variety or theme.
 
 
 
+\## Monster construction
+
+
+
+Only 1 place in the codebase directly constructs a monster with
+
+`new Monster(...)`: inside `MonsterFactory.java`, line 48. This means
+
+monster creation is already centralized rather than scattered across
+
+level/room classes.
+
+
+
+\## Player experience descending levels
+
+
+
+In one sentence: the experience barely changes when descending levels
+
+\-- it's the same handful of monster species every time, just with
+
+bigger HP/attack numbers, with no real thematic progression between
+
+levels.
+
+
+
 \## FLAVORS problem
 
 
