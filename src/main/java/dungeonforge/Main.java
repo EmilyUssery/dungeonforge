@@ -6,6 +6,7 @@ import dungeonforge.core.GameWorld;
 import dungeonforge.core.Monster;
 import dungeonforge.core.Player;
 import dungeonforge.core.Room;
+import dungeonforge.items.Item;
 
 /**
  * WEEK 2 -- the walking skeleton, now running a small demo of the Week 1 domain.
@@ -69,6 +70,12 @@ public final class Main {
                 }
                 System.out.println(line.toString().trim());
                 System.out.println("    \"" + room.getFlavor() + "\"");
+                if (room.getChest() != null) {
+                    System.out.println("    [Chest: " + room.getChest().getName() + "]");
+                    for (Item item : room.getChest().getContents()) {
+                        System.out.println("      - " + item.describe());
+                    }
+                }
             }
         }
         System.out.println();

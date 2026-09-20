@@ -216,3 +216,51 @@ class, 1 registry line. GameWorld and every other existing class
 
 remain untouched -- exactly what Abstract Factory promises.
 
+
+
+\## Part C proof: rooms differ (Factory Method)
+
+
+
+Ran the game after wiring RoomPopulator (StandardRoomPopulator,
+
+TreasureRoomPopulator, BossRoomPopulator) into GameWorld.generate().
+
+
+
+Standard room (no chest, 0-N monsters, flavor present):
+
+L1R2: Wight, Crypt Rat -- "Burial niches line the walls..."
+
+
+
+Treasure room (exactly 1 guard, chest with 2+ theme items):
+
+L1R1: Skeleton (guard) -- \[Iron-Bound Chest: Vial of Still Water,
+
+Bone Shortsword, Bone Charm]
+
+
+
+Boss room (final room of deepest level, contains that theme's boss):
+
+L4R7: Bog Matriarch (63/63 HP, ATK 13), Mire Stalker
+
+&#x20;     \[Tyrant's Hoard: Murky Tonic, Reed-Woven Hide]
+
+
+
+RoomPopulator.populate() is declared final; createEncounter() is
+
+declared abstract -- confirmed by inspection of RoomPopulator.java.
+
+
+
+This confirms the two patterns composing: RoomPopulator (Factory
+
+Method) decides HOW MANY objects go in a room; ThemeKit (Abstract
+
+Factory) decides WHICH KIND. Two different axes of variation, two
+
+different patterns, one room.
+
