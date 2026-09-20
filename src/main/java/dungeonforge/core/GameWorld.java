@@ -5,25 +5,16 @@ import java.util.List;
 
 import dungeonforge.config.GameConfig;
 import dungeonforge.config.RandomSource;
-import dungeonforge.factory.MonsterDef;
 import dungeonforge.factory.MonsterFactory;
+import dungeonforge.factory.ThemeKit;
+import dungeonforge.factory.ThemeRegistry;
 
-/**
- * WEEK 1 -- the world.
- *
- * WEEK 3 (US-1.1): dungeonDepth, roomsPerLevel, and maxMonstersPerRoom now come
- * from GameConfig.
- *
- * WEEK 3 (US-1.2): randomness now comes from the single shared RandomSource.
- *
- * WEEK 4 (US-2.1): monsters now come from MonsterFactory/monsters.json, not a
- * hardcoded species list. spawn() is gone.
- */
 public class GameWorld {
 
     private final Player player;
     private final List<DungeonLevel> levels = new ArrayList<>();
     private final MonsterFactory monsterFactory = new MonsterFactory();
+    private final ThemeRegistry themes = new ThemeRegistry(monsterFactory);
 
     public GameWorld(Player player) {
         this.player = player;
@@ -36,23 +27,19 @@ public class GameWorld {
         int maxMonstersPerRoom = GameConfig.getInstance().getInt("maxMonstersPerRoom");
 
         for (int d = 1; d <= dungeonDepth; d++) {
-            DungeonLevel level = new DungeonLevel(d);
+            ThemeKit theme = themes.forDepth(d);
+            DungeonLevel level = new DungeonLevel(d, theme.themeName());
             for (int r = 0; r < roomsPerLevel; r++) {
                 Room room = new Room("L" + d + "R" + r);
+                room.setFlavor(theme.createRoomFlavor());
                 int count = RandomSource.getInstance().nextInt(maxMonstersPerRoom + 1);
                 for (int m = 0; m < count; m++) {
-                    room.addMonster(pickMonster(d));
+                    room.addMonster(theme.createMonster(d));
                 }
                 level.addRoom(room);
             }
             levels.add(level);
         }
-    }
-
-    private Monster pickMonster(int depth) {
-        List<MonsterDef> pool = monsterFactory.getByTheme("crypt", false);
-        MonsterDef chosen = pool.get(RandomSource.getInstance().nextInt(pool.size()));
-        return monsterFactory.create(chosen.getId(), depth);
     }
 
     public Player getPlayer()             { return player; }

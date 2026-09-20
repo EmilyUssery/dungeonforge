@@ -132,3 +132,47 @@ monsters.json makes it playable immediately, with zero changes to any
 
 .java file (AC2).
 
+
+
+\## Part B proof: levels have character (Abstract Factory)
+
+
+
+Ran the game after wiring ThemeRegistry into GameWorld. Level headers and
+
+room flavor text now confirm each level is a self-contained theme:
+
+
+
+\-- Level 1: crypt --
+
+&#x20;   "The air tastes of old dust and older grief."
+
+&#x20;   Skeleton, Wight, Bone Priest, Crypt Rat, Ghoul (all crypt)
+
+
+
+\-- Level 2: forge --
+
+&#x20;   "Heat rolls off the walls in slow waves."
+
+&#x20;   Slag Hound, Forge Golem, Imp (all forge)
+
+
+
+\-- Level 3: frost --
+
+&#x20;   "Ice sheets the walls, and something moves behind it."
+
+&#x20;   Ice Lurker, Rime Stalker, Hoar Shade, Frost Wight (all frost)
+
+
+
+No monster or flavor line crossed themes in this run. A forge room now
+
+describes heat and cinders instead of "damp stone" -- the exact problem
+
+identified in Part 0 is fixed by CryptThemeKit/ForgeThemeKit/FrostThemeKit
+
+each only returning products from their own family (Abstract Factory).
+
