@@ -36,6 +36,8 @@ level/room classes.
 
 
 
+
+
 \## Player experience descending levels
 
 
@@ -175,4 +177,42 @@ describes heat and cinders instead of "damp stone" -- the exact problem
 identified in Part 0 is fixed by CryptThemeKit/ForgeThemeKit/FrostThemeKit
 
 each only returning products from their own family (Abstract Factory).
+
+
+
+\## Part B AC4 proof: adding a theme is cheap
+
+
+
+Added a 4th theme (swamp) to prove the Abstract Factory's claim:
+
+
+
+1\. Added 5 new monster blueprints to monsters.json (theme: "swamp")
+
+2\. Created one new file: SwampThemeKit.java (implements ThemeKit)
+
+3\. Added exactly ONE line to ThemeRegistry's constructor:
+
+&#x20;  kits.add(new SwampThemeKit(factory));
+
+4\. Set dungeonDepth to 4 in config.json
+
+5\. GameWorld.java was NOT modified.
+
+
+
+Ran the game and got a fully-formed Level 4: swamp, with only swamp
+
+monsters (Mire Stalker, Swamp Troll, Bog Leech, Will-o'-Wisp) and
+
+matching swamp flavor text ("The mud pulls at your boots...").
+
+
+
+This confirms adding a new theme family costs: 1 data block, 1 new
+
+class, 1 registry line. GameWorld and every other existing class
+
+remain untouched -- exactly what Abstract Factory promises.
 
