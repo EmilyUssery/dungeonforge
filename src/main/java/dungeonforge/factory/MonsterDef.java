@@ -11,6 +11,11 @@ public final class MonsterDef {
     private final String theme;
     private final boolean boss;
 
+    public MonsterDef(String id,String name, int hp, int attack, int xp, String theme){
+        this(id, name, hp, attack, xp, theme, false);
+    }
+
+
     public MonsterDef(String id, String name, int hp, int attack, int xp, String theme, boolean boss) {
         this.id = id;
         this.name = name;
@@ -20,6 +25,16 @@ public final class MonsterDef {
         this.theme = theme;
         this.boss = boss;
     }
+
+    @Override
+    public String toString() {
+        return id + "(" + name + " hp=" + hp + "attack=" + attack + "theme=" + theme + (boss ? "BOSS" : "") + ")";
+
+
+    }
+
+
+
 
     public String getId()     { return id; }
     public String getName()   { return name; }

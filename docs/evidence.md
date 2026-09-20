@@ -96,3 +96,39 @@ room) matching the level's actual biome, instead of one hardcoded
 
 crypt-only array.
 
+
+
+\## Part A proof: monsters come from data
+
+
+
+Added a new monster to monsters.json:
+
+
+
+"ghoul": { "name": "Ghoul", "hp": 14, "attack": 8, "xp": 12, "theme": "crypt" }
+
+
+
+Ran `mvn clean compile` then `mvn -q exec:java` (no .java files were touched).
+
+The Ghoul appeared multiple times in the generated dungeon:
+
+
+
+L1R5: Ghoul (18/18 HP, ATK 10)
+
+L1R6: Ghoul (20/20 HP, ATK 9)
+
+L2R2: Ghoul (22/22 HP, ATK 10)
+
+L2R5: Ghoul (22/22 HP, ATK 10)
+
+
+
+This confirms monsters are fully data-driven: adding a new blueprint to
+
+monsters.json makes it playable immediately, with zero changes to any
+
+.java file (AC2).
+

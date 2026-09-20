@@ -5,6 +5,7 @@
   "bone_priest":  { "name": "Bone Priest",   "hp": 16, "attack": 4, "xp": 12, "theme": "crypt" },
   "bone_tyrant":  { "name": "Bone Tyrant",   "hp": 42, "attack": 9, "xp": 45, "theme": "crypt", "boss": true },
   "grave_moth":   { "name": "Grave Moth",    "hp": 11, "attack": 4, "xp": 6,  "theme": "crypt" },
+  "ghoul":       { "name": "Ghoul",          "hp": 14, "attack": 8, "xp": 12, "theme": "crypt" },
 
   "imp":          { "name": "Imp",           "hp": 10, "attack": 5, "xp": 7,  "theme": "forge" },
   "slag_hound":   { "name": "Slag Hound",    "hp": 15, "attack": 6, "xp": 9,  "theme": "forge" },
