@@ -58,4 +58,12 @@ public final class MonsterFactory {
         }
         return out;
     }
+
+    public int blueprintCount() {
+        return blueprints.size();
+    }
+
+    public boolean hasBlueprint(String id) {
+        return blueprints.containsKey(id);
+    }
 }
