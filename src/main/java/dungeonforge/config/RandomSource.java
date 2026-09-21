@@ -40,4 +40,8 @@ public final class RandomSource {
     public int nextInt(int bound) {
         return random.nextInt(bound);
     }
+
+    public double nextDouble() {
+        return random.nextDouble();
+    }
 }

@@ -47,15 +47,27 @@ public final class GameConfig {
         defaults.put("randomSeed", 42.0);
     }
 
-    private void loadFromFile() {
-        try (InputStream in = GameConfig.class.getResourceAsStream("/data/config.json")) {
-            if (in == null) {
-                return; // no file -> defaults stand (AC4)
-            }
-            String text = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+       private void loadFromFile() {
+        String text = readResource("/data/config.json");
+        if (text == null) {
+            return; // no file -> defaults stand (AC4)
+        }
+        try {
             settings.putAll(Json.parseObject(text));
         } catch (Exception e) {
-            // Any read/parse failure -> defaults stand (AC4)
+            // Any parse failure -> defaults stand (AC4)
+        }
+    }
+
+    /** Reads a classpath resource as a UTF-8 string, or null if it can't be read. */
+    public static String readResource(String path) {
+        try (InputStream in = GameConfig.class.getResourceAsStream(path)) {
+            if (in == null) {
+                return null;
+            }
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return null;
         }
     }
 

@@ -3,7 +3,7 @@
     "playerStartingAttack": 8,
     "playerStartingDefense": 2,
     "playerCarryCapacity": 60.0,
-    "dungeonDepth": 3,
+    "dungeonDepth": 4,
     "roomsPerLevel": 8,
     "maxMonstersPerRoom": 2,
     "randomSeed": 42

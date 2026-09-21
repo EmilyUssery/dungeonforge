@@ -6,6 +6,7 @@ import dungeonforge.core.GameWorld;
 import dungeonforge.core.Monster;
 import dungeonforge.core.Player;
 import dungeonforge.core.Room;
+import dungeonforge.items.Item;
 
 /**
  * WEEK 2 -- the walking skeleton, now running a small demo of the Week 1 domain.
@@ -59,7 +60,7 @@ public final class Main {
         System.out.println();
 
         for (DungeonLevel level : world.getLevels()) {
-            System.out.println("-- Level " + level.getDepth() + " --");
+            System.out.println("-- Level " + level.getDepth() + ": " + level.getThemeName() + " --");
             for (Room room : level.getRooms()) {
                 StringBuilder line = new StringBuilder("  " + room.getId() + ": ");
                 if (room.getMonsters().isEmpty()) {
@@ -68,6 +69,13 @@ public final class Main {
                     for (Monster m : room.getMonsters()) line.append(m.describe()).append("  ");
                 }
                 System.out.println(line.toString().trim());
+                System.out.println("    \"" + room.getFlavor() + "\"");
+                if (room.getChest() != null) {
+                    System.out.println("    [Chest: " + room.getChest().getName() + "]");
+                    for (Item item : room.getChest().getContents()) {
+                        System.out.println("      - " + item.describe());
+                    }
+                }
             }
         }
         System.out.println();
