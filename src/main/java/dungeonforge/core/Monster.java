@@ -1,29 +1,28 @@
 package dungeonforge.core;
 
-import dungeonforge.config.RandomSource;
+import dungeonforge.behavior.CombatStrategy;
 
-/**
- * WEEK 1 -- a monster.
- *
- * WEEK 3 (US-1.2): randomness now comes from the single shared RandomSource.
- */
 public class Monster extends Entity {
 
     private final String species;
     private final int xpReward;
+    private CombatStrategy strategy;
 
     public Monster(String species, int baseHp, int baseAttack, int xpReward) {
-        // A little stat variance so no two monsters are identical.
-        super(species,
-              baseHp + RandomSource.getInstance().nextInt(5) - 2,
-              baseAttack + RandomSource.getInstance().nextInt(3) - 1,
-              0);
+        super(species, baseHp, baseAttack, 0);
         this.species = species;
         this.xpReward = xpReward;
     }
 
     public String getSpecies() { return species; }
     public int getXpReward()   { return xpReward; }
+
+    public void setStrategy(CombatStrategy strategy) { this.strategy = strategy; }
+    public CombatStrategy getStrategy()               { return strategy; }
+
+    public double hpFraction() {
+        return maxHp == 0 ? 0.0 : (double) hp / maxHp;
+    }
 
     @Override
     public String describe() {

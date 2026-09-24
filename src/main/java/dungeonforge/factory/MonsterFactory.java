@@ -1,7 +1,13 @@
 package dungeonforge.factory;
 
+import dungeonforge.behavior.AggressiveStrategy;
+import dungeonforge.behavior.CombatStrategy;
+import dungeonforge.behavior.HealerStrategy;
+import dungeonforge.behavior.RangedStrategy;
+import dungeonforge.behavior.SkittishStrategy;
 import dungeonforge.config.GameConfig;
 import dungeonforge.config.Json;
+import dungeonforge.config.RandomSource;
 import dungeonforge.core.Monster;
 
 import java.util.ArrayList;
@@ -33,7 +39,8 @@ public final class MonsterFactory {
             int xp = ((Number) fields.get("xp")).intValue();
             String theme = (String) fields.get("theme");
             boolean boss = Boolean.TRUE.equals(fields.get("boss"));
-            blueprints.put(id, new MonsterDef(id, name, hp, attack, xp, theme, boss));
+            String strategy = (String) fields.get("strategy");
+            blueprints.put(id, new MonsterDef(id, name, hp, attack, xp, theme, boss, strategy));
         }
     }
 
@@ -43,10 +50,26 @@ public final class MonsterFactory {
             // AC4: unknown id must not crash -- safe fallback, still playable
             d = new MonsterDef(id, "Wanderer", 10, 3, 2, "unknown", false);
         }
-        int hp = d.getHp() + depth * 4;
-        int attack = d.getAttack() + depth;
-        return new Monster(d.getName(), hp, attack, d.getXp());
-        // Monster's own constructor already adds the +/- variance -- no need to re-roll it here.
+        // WEEK 5: variance lives HERE now -- the only place that adds it, since Monster's
+        // own constructor no longer does.
+        int hp = d.getHp() + depth * 4 + RandomSource.getInstance().nextInt(5) - 2;
+        int attack = d.getAttack() + depth + RandomSource.getInstance().nextInt(3) - 1;
+        Monster m = new Monster(d.getName(), hp, attack, d.getXp());
+        m.setStrategy(strategyFor(d.getStrategy()));
+        return m;
+    }
+
+    /** WEEK 5 (US-3.1) -- turns a name from the data file into a CombatStrategy object. */
+    public CombatStrategy strategyFor(String name) {
+        if (name == null) {
+            return new AggressiveStrategy();
+        }
+        return switch (name) {
+            case "ranged" -> new RangedStrategy();
+            case "skittish" -> new SkittishStrategy();
+            case "healer" -> new HealerStrategy();
+            default -> new AggressiveStrategy();
+        };
     }
 
     public List<MonsterDef> getByTheme(String theme, boolean bossOnly) {
