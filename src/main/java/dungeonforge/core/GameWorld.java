@@ -72,4 +72,18 @@ public class GameWorld {
         }
         return n;
     }
+
+    /** WEEK 5 -- total loot seeded across the dungeon: chest contents plus loose floor items. */
+    public int totalLoot() {
+        int n = 0;
+        for (DungeonLevel l : levels) {
+            for (Room r : l.getRooms()) {
+                if (r.getChest() != null) {
+                    n += r.getChest().getContents().size();
+                }
+                n += r.getFloorItems().size();
+            }
+        }
+        return n;
+    }
 }
