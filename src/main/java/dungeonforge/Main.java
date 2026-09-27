@@ -103,6 +103,12 @@ public final class Main {
         }
 
         System.out.println();
+        System.out.println("Combat log (" + combatLog.size() + " lines):");
+        for (String line : combatLog.getLines()) {
+            System.out.println("  " + line);
+        }
+
+        System.out.println();
         System.out.println("Event tally:");
         for (EventType type : EventType.values()) {
             System.out.println("  " + type + ": " + stats.countOf(type));
