@@ -115,7 +115,7 @@ Forge Golem changes tactics: aggressive -> skittish.
 **Paste yours:**
 
 ```
-Wight changes tactics: aggressive -> skittish
+Wight changes tactics: aggressive -> skittish.
 ```
 
 **Now answer:** at the moment that line was printed, what changed about the `Forge Golem`
