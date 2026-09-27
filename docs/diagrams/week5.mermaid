@@ -1,0 +1,138 @@
+classDiagram
+    direction LR
+
+    namespace StrategyPattern {
+        class CombatStrategy {
+            <<interface>>
+            +chooseAction(self, target, room) Action
+            +name() String
+        }
+        class AggressiveStrategy
+        class SkittishStrategy {
+            +FLEE_THRESHOLD$ double
+        }
+        class RangedStrategy
+        class HealerStrategy
+        class TricksterStrategy
+        class Action {
+            -type Type
+            -target Monster
+            -flavor String
+            +attack()$ Action
+            +rangedAttack()$ Action
+            +flee()$ Action
+            +healAlly(Monster)$ Action
+            +wait(String)$ Action
+        }
+    }
+
+    namespace ObserverPattern {
+        class EventBus {
+            -listeners List~GameEventListener~
+            +subscribe(GameEventListener)
+            +unsubscribe(GameEventListener)
+            +publish(GameEvent)
+            +listenerCount() int
+        }
+        class GameEventListener {
+            <<interface>>
+            +onEvent(GameEvent)
+        }
+        class GameEvent {
+            -type EventType
+            -payload Map
+            +of(type, pairs)$ GameEvent
+            +message(text)$ GameEvent
+        }
+        class EventType {
+            <<enumeration>>
+            MESSAGE
+            STRATEGY_CHANGED
+            MONSTER_DIED
+            ROOM_CLEARED
+            LEVEL_ENTERED
+            DELVE_SURVIVED
+        }
+        class QuestTracker
+        class Quest
+        class AchievementSystem
+        class CombatLog
+        class ConsolePrinter
+        class StatisticsCollector
+    }
+
+    namespace SingletonPattern {
+        class RandomSource {
+            -instance$ RandomSource
+            +getInstance()$ RandomSource
+        }
+        class GameConfig {
+            -instance$ GameConfig
+            +getInstance()$ GameConfig
+        }
+    }
+
+    namespace SimpleFactory {
+        class MonsterFactory {
+            +create(id, depth) Monster
+            +strategyFor(name) CombatStrategy
+        }
+    }
+
+    namespace CoreDomain {
+        class Entity {
+            <<abstract>>
+            #name String
+            #hp int
+            #maxHp int
+            #attackPower int
+            #defense int
+            +takeDamage(int)
+            +heal(int)
+            +isAlive() bool
+            +describe()* String
+        }
+        class Player
+        class Monster {
+            -species String
+            -xpReward int
+        }
+        class Room {
+            -monsters List~Monster~
+        }
+        class Combat {
+            -bus EventBus
+            +fight(Player, Room, int) bool
+        }
+    }
+
+    Entity <|-- Player
+    Entity <|-- Monster
+    CombatStrategy <|.. AggressiveStrategy
+    CombatStrategy <|.. SkittishStrategy
+    CombatStrategy <|.. RangedStrategy
+    CombatStrategy <|.. HealerStrategy
+    CombatStrategy <|.. TricksterStrategy
+    Monster "1" *-- "1" CombatStrategy : strategy
+    CombatStrategy ..> Action : returns
+    GameEventListener <|.. QuestTracker
+    GameEventListener <|.. AchievementSystem
+    GameEventListener <|.. CombatLog
+    GameEventListener <|.. ConsolePrinter
+    GameEventListener <|.. StatisticsCollector
+EventBus "1" o-- "many" GameEventListener : subscribers
+EventBus ..> GameEvent : publishes
+GameEvent --> EventType
+QuestTracker "1" *-- "many" Quest
+Quest --> EventType : trigger
+Combat --> EventBus : publishes to
+Combat --> Monster
+Combat --> Player
+Combat --> Room
+Room "1" o-- "many" Monster
+MonsterFactory ..> Monster : creates
+MonsterFactory ..> CombatStrategy : creates
+MonsterFactory ..> RandomSource : uses
+MonsterFactory ..> GameConfig : uses
+Player ..> GameConfig : uses
+RandomSource ..> GameConfig : uses
