@@ -14,12 +14,14 @@ import dungeonforge.events.EventType;
 import dungeonforge.events.GameEvent;
 import dungeonforge.events.Quest;
 import dungeonforge.events.QuestTracker;
+import dungeonforge.events.StatisticsCollector;
 import dungeonforge.items.Item;
 
 /**
  * WEEK 5 -- the first real delve. Main wires the EventBus and its listeners together, then
  * walks the dungeon room by room letting Combat run each fight. Main knows QuestTracker,
- * AchievementSystem, CombatLog, and ConsolePrinter all exist -- Combat never does.
+ * AchievementSystem, CombatLog, ConsolePrinter, and StatisticsCollector all exist -- Combat
+ * never does.
  */
 public final class Main {
 
@@ -64,10 +66,12 @@ public final class Main {
         QuestTracker questTracker = new QuestTracker(bus);
         AchievementSystem achievements = new AchievementSystem(bus);
         CombatLog combatLog = new CombatLog(200);
+        StatisticsCollector stats = new StatisticsCollector();
         bus.subscribe(questTracker);
         bus.subscribe(achievements);
         bus.subscribe(combatLog);
         bus.subscribe(new ConsolePrinter());
+        bus.subscribe(stats);
 
         Player player = new Player(playerName);
         GameWorld world = new GameWorld(player);
@@ -96,6 +100,12 @@ public final class Main {
             for (String a : achievements.getUnlocked()) {
                 System.out.println("  - " + a);
             }
+        }
+
+        System.out.println();
+        System.out.println("Event tally:");
+        for (EventType type : EventType.values()) {
+            System.out.println("  " + type + ": " + stats.countOf(type));
         }
     }
 

@@ -5,6 +5,7 @@ import dungeonforge.behavior.CombatStrategy;
 import dungeonforge.behavior.HealerStrategy;
 import dungeonforge.behavior.RangedStrategy;
 import dungeonforge.behavior.SkittishStrategy;
+import dungeonforge.behavior.TricksterStrategy;
 import dungeonforge.config.GameConfig;
 import dungeonforge.config.Json;
 import dungeonforge.config.RandomSource;
@@ -68,6 +69,7 @@ public final class MonsterFactory {
             case "ranged" -> new RangedStrategy();
             case "skittish" -> new SkittishStrategy();
             case "healer" -> new HealerStrategy();
+            case "trickster" -> new TricksterStrategy();
             default -> new AggressiveStrategy();
         };
     }

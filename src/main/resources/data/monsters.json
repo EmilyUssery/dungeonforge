@@ -1,5 +1,5 @@
 {
-  "skeleton":      { "name": "Skeleton",      "hp": 14, "attack": 4,  "xp": 6,  "theme": "crypt", "strategy": "aggressive" },
+  "skeleton":      { "name": "Skeleton",      "hp": 14, "attack": 4,  "xp": 6,  "theme": "crypt", "strategy": "trickster" },
   "crypt_rat":     { "name": "Crypt Rat",     "hp": 9,  "attack": 3,  "xp": 4,  "theme": "crypt", "strategy": "skittish" },
   "wight":         { "name": "Wight",         "hp": 18, "attack": 5,  "xp": 10, "theme": "crypt", "strategy": "aggressive" },
   "bone_priest":   { "name": "Bone Priest",   "hp": 16, "attack": 4,  "xp": 12, "theme": "crypt", "strategy": "healer" },
