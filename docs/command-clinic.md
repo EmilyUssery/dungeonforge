@@ -21,10 +21,10 @@ That last row has no answer, and saying so clearly is worth full marks.
 
 | Question | Your answer |
 |---|---|
-| Lines in the new `gameLoop()` | |
-| `else if` branches remaining | |
-| To add "equip": files created, files modified | |
-| To add alias "e": how many places? | |
+| Lines in the new `gameLoop()` | 9 |
+| `else if` branches remaining | 0 |
+| To add "equip": files created, files modified | 1 created (`EquipCommand.java`), 1 modified (one `register` line in `CommandParser`) |
+| To add alias "e": how many places? | 1 — `alias("e", "equip");` |
 
 ## D2 — The naive undo, and why it fails · 12 pts 🔑
 
@@ -46,25 +46,29 @@ Check `status` again. Now `undo`, and check `status` a third time.
 
 | | HP | XP | Gold | Monster HP |
 |---|---|---|---|---|
-| Before attack | | | | |
-| After attack | | | | |
-| After naive undo | | | | |
+| Before attack | 66 | 0 | 0 | 17 (Ghoul) |
+| After attack | 58 | 0 | 0 | 12 (hit for 10, then healed 5 by the Bone Priest) |
+| After naive undo | 58 | 0 | 0 | 17 |
 
 **Which values did NOT come back?**
 
+My HP. It stayed at 58 instead of returning to 66. Only the Ghoul's HP came back.
+
 **Why not? Answer in terms of what happened during that one turn**, not in terms of code:
 
+My attack was not the only thing that happened in that turn. After I struck, the Ghoul hit me back for 8 and the Bone Priest healed the Ghoul. The undo only remembered the Ghoul's HP before my blow, so it reversed my part of the turn and left the monsters' part in place. If the attack had killed the Ghoul, my XP and gold would have stayed too.
 
 ### Step 3 — list everything one turn can change
 
 Before you write the fix, enumerate it. Your undo has to reverse all of it.
 
-- [ ] the target monster's hit points
-- [ ] 
-- [ ] 
-- [ ] 
-- [ ] 
-- [ ] 
+- [x] the target monster's hit points
+- [x] the player's hit points (the counter-attack)
+- [x] the player's XP and gold (rewards from a kill)
+- [x] other monsters' hit points (the Bone Priest healing an ally)
+- [x] a monster's combat strategy (Week 5 swap, e.g. aggressive -> skittish)
+- [x] a monster that fled — it is removed from the room's monster list
+- [x] (also) the player's inventory, the floor items, the chest contents, and which room the player is in
 
 > Two of these are easy to miss. One involves Week 5's strategy swap; the other involves a
 > monster that isn't in the room any more.

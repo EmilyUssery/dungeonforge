@@ -49,6 +49,7 @@ private static void gameLoop(CommandParser commands, GameContext ctx, BufferedRe
         if (line == null) break;
         Command command = commands.parse(line, ctx);
         command.execute();
+        ctx.getHistory().push(command);
     }
 }
 ```
@@ -66,9 +67,9 @@ alias("dr", "drop");
 
 | | HP | XP | Gold | Monster HP |
 |---|---|---|---|---|
-| Before attack | | | | |
-| After attack | | | | |
-| After naive undo | | | | |
+| Before attack | 66 | 0 | 0 | 17 (Ghoul) |
+| After attack | 58 | 0 | 0 | 12 (hit for 10, then healed 5 by the Bone Priest) |
+| After naive undo | 58 | 0 | 0 | 17 |
 
 **The same table after `TurnSnapshot`:**
 
@@ -114,4 +115,4 @@ alias("dr", "drop");
 
 ## 7. Sprint review — one sentence
 
-> What can the project do now that it could not do last week?ot do last week?
+> What can the project do now that it could not do last week?
