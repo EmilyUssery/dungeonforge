@@ -27,7 +27,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * WEEK 7 -- the game is INTERACTIVE, and every action is a Command object.
@@ -62,6 +65,9 @@ public final class Main {
         parser.addArgument("-s", "--seed")
                 .dest("seed").type(Long.class).setDefault(-1L)
                 .help("World seed; omit to use the value in config.json");
+        parser.addArgument("-f", "--script")
+                .dest("script").type(String.class).setDefault("")
+                .help("Replay a recorded session from a file instead of reading the keyboard");
 
         Namespace res;
         try {
@@ -101,7 +107,18 @@ public final class Main {
         ctx.message("Type 'help' for what you can do.");
         ctx.message("You carry a Chronomancer's Hourglass -- 'use hourglass' rewinds one turn.");
         ctx.message(ctx.describeCurrentRoom());
-        gameLoop(commands, ctx, in);
+
+        String script = res.getString("script");
+        if (script != null && !script.isBlank()) {
+            try {
+                runScript(commands, ctx, Files.readAllLines(Path.of(script)));
+            } catch (IOException e) {
+                System.err.println("Could not read script " + script + ": " + e.getMessage());
+                System.exit(1);
+            }
+        } else {
+            gameLoop(commands, ctx, in);
+        }
 
         System.out.println();
         System.out.println("  " + player.describe());
@@ -113,6 +130,22 @@ public final class Main {
         while (ctx.isRunning() && ctx.getPlayer().isAlive()) {
             String line = prompt(ctx, in);
             if (line == null) break;
+            Command command = commands.parse(line, ctx);
+            command.execute();
+            ctx.getHistory().push(command);
+        }
+    }
+
+    /**
+     * D3 -- replay a recorded session. Exactly the same parse / execute / remember steps as
+     * gameLoop(); only the source of the lines is different. Blank lines and lines starting
+     * with '#' are skipped, and replay stops if the player dies or quits.
+     */
+    private static void runScript(CommandParser commands, GameContext ctx, List<String> lines) {
+        for (String line : lines) {
+            if (line.isBlank() || line.trim().startsWith("#")) continue;
+            if (!ctx.isRunning() || !ctx.getPlayer().isAlive()) break;
+            System.out.println("\n[script] > " + line);
             Command command = commands.parse(line, ctx);
             command.execute();
             ctx.getHistory().push(command);
