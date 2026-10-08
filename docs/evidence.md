@@ -82,56 +82,62 @@ alias("dr", "drop");
 ## 4. AFTER — US-5.3 and US-5.4
 
 **Paste a `loot` that picks up three things, then an `undo` that puts them all back:**
+
+```
 [HP 36/80] > drop draught
-You drop Small Healing Draught.
+  You drop Small Healing Draught.
 
 [HP 36/80] > inventory
-- Chronomancer’s Hourglass [2 charges, rewinds one turn]
+    - Chronomancer's Hourglass [2 charges, rewinds one turn]
 
 [HP 36/80] > loot
-You take Small Healing Draught.
-You take Bone Charm.
-You take Bone Shortsword.
+  You take Small Healing Draught.
+  You take Bone Charm.
+  You take Bone Shortsword.
 
 [HP 36/80] > inventory
-- Chronomancer’s Hourglass [2 charges, rewinds one turn]
-- Small Healing Draught [heals 22] (0.3kg, 20g)
-- Bone Charm (1.0kg, 75g)
-- Bone Shortsword [dmg 6] (2.0kg, 50g)
+    - Chronomancer's Hourglass [2 charges, rewinds one turn]
+    - Small Healing Draught [heals 22] (0.3kg, 20g)
+    - Bone Charm (1.0kg, 75g)
+    - Bone Shortsword [dmg 6] (2.0kg, 50g)
 
 [HP 36/80] > look
-[L1R2] Level 1: crypt
-“The air tastes of old dust and older grief.”
-Exits: south, north
+  [L1R2] Level 1: crypt
+    "The air tastes of old dust and older grief."
+    Exits: south, north
 
 [HP 36/80] > undo
-Time slips backward one step.
+  Time slips backward one step.
 
 [HP 36/80] > inventory
-- Chronomancer’s Hourglass [2 charges, rewinds one turn]
+    - Chronomancer's Hourglass [2 charges, rewinds one turn]
 
 [HP 36/80] > look
-[L1R2] Level 1: crypt
-“The air tastes of old dust and older grief.”
-On the floor: Small Healing Draught [heals 22] (0.3kg, 20g)
-Iron-Bound Chest:
-- Bone Charm (1.0kg, 75g)
-- Bone Shortsword [dmg 6] (2.0kg, 50g)
-Exits: south, north
+  [L1R2] Level 1: crypt
+    "The air tastes of old dust and older grief."
+    On the floor: Small Healing Draught [heals 22] (0.3kg, 20g)
+    Iron-Bound Chest:
+      - Bone Charm (1.0kg, 75g)
+      - Bone Shortsword [dmg 6] (2.0kg, 50g)
+    Exits: south, north
+```
 
 One `loot` took all three items (one from the floor, two from the chest). One `undo` put every one of them back where it came from.
 
 **Paste the hourglass rewinding a turn, with `inventory` before and after:**
+
+```
 [HP 46/80] > inventory
-- Small Healing Draught [heals 22] (0.3kg, 20g)
-- Chronomancer’s Hourglass [2 charges, rewinds one turn]
+    - Small Healing Draught [heals 22] (0.3kg, 20g)
+    - Chronomancer's Hourglass [2 charges, rewinds one turn]
 
 [HP 46/80] > use hourglass
-The sand runs backwards. The last moment unhappens. (1 charges left)
+  The sand runs backwards. The last moment unhappens. (1 charges left)
 
 [HP 52/80] > inventory
-- Small Healing Draught [heals 22] (0.3kg, 20g)
-- Chronomancer’s Hourglass [1 charges, rewinds one turn]
+    - Small Healing Draught [heals 22] (0.3kg, 20g)
+    - Chronomancer's Hourglass [1 charges, rewinds one turn]
+```
 
 The hourglass undid the last attack turn (HP back from 46 to 52, the Bone Priest's hit reversed), spent one charge, and did not use up a turn.
 
@@ -141,12 +147,63 @@ The hourglass undid the last attack turn (HP back from 46 to 52, the Bone Priest
 
 **Paste your `history` output and the first ten lines of replaying it with `--script=`:**
 
+`history` at the end of a live session:
+
+```
+  north
+  attack
+  attack
+  attack
+  attack
+  north
+  attack
+  attack
+  look
+  loot
+  inventory
+  status
+```
+
+Saved to `mysession.txt` and replayed with `mvn -q exec:java "-Dexec.args=--script=mysession.txt"`:
+
+```
+[script] > north
+  [L1R1] Level 1: crypt
+    "The air tastes of old dust and older grief."
+    Hostile: Ghoul (17/17 HP, ATK 8) Bone Priest (22/22 HP, ATK 6)
+    Exits: south, north
+  Ghoul attacks for 8
+  Bone Priest attacks for 6
+
+[script] > attack
+  You hit Ghoul for 10
+```
+
+The replay ended with exactly the same status as the live game: `HP 36/80  Gold 24  XP 12`.
+
 ## 6. Tests and CI
 
 **`mvn test` summary:**
+
+```
+[INFO] Running dungeonforge.CommandTest
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Running dungeonforge.FactoryTest
+[INFO] Tests run: 16, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Running dungeonforge.SingletonTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Running dungeonforge.SkeletonTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Running dungeonforge.StrategyObserverTest
+[INFO] Tests run: 17, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 61, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+```
 
 **Green CI URL:**
 
 ## 7. Sprint review — one sentence
 
 > What can the project do now that it could not do last week?
+
+Every player action is now an object, so the game can undo a whole turn, loot a room in one word, rewind time with the Hourglass, and replay a recorded session move for move.

@@ -1,0 +1,12 @@
+north
+attack
+attack
+attack
+attack
+north
+attack
+attack
+look
+loot
+inventory
+status

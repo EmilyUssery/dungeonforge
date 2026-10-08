@@ -78,10 +78,6 @@ Before you write the fix, enumerate it. Your undo has to reverse all of it.
 Build `TurnSnapshot` and make `undo()` restore it. Re-run the table from step 2 and confirm
 everything returns.
 
-**Now the question worth the marks.** The Command pattern promised "supports undoable
-operations." **Did Command actually give you undo?** Answer carefully — there's a real
-distinction here, and it's the most useful thing in this week.
-
 | | HP | XP | Gold | Monster HP |
 |---|---|---|---|---|
 | Before attack | 66 | 0 | 0 | 17 (Ghoul) |
@@ -90,14 +86,32 @@ distinction here, and it's the most useful thing in this week.
 
 Everything came back this time, including my HP.
 
-**Answer:** No, not by itself. Command gave me a *place* for undo: every action is now an object with an `undo()` method, and because it is an object I can keep it on a history stack and call it later. But the pattern did not tell me *what* to put back. My first `undo()` followed the pattern perfectly and was still wrong, because one turn changes far more than the action itself. The real undo needed two more pieces: `TurnSnapshot` (a Memento that records everything a turn can change) and `CommandHistory` (the stack that remembers which command to reverse). So Command makes undo *possible*; Memento plus a history is what makes it *correct*.
+**Now the question worth the marks.** The Command pattern promised "supports undoable
+operations." **Did Command actually give you undo?** Answer carefully — there's a real
+distinction here, and it's the most useful thing in this week.
 
+No, not by itself. Command gave me a *place* for undo: every action is now an object with an `undo()` method, and because it is an object I can keep it on a history stack and call it later. But the pattern did not tell me *what* to put back. My first `undo()` followed the pattern perfectly and was still wrong, because one turn changes far more than the action itself. The real undo needed two more pieces: `TurnSnapshot` (a Memento that records everything a turn can change) and `CommandHistory` (the stack that remembers which command to reverse). So Command makes undo *possible*; Memento plus a history is what makes it *correct*.
 
 ## D3 — The capabilities you didn't ask for · 5 pts
 
 The pattern's definition lists four things. You wanted one.
 
 **Record a session.** Play for a dozen commands, run `history`, and paste the log:
+
+```
+north
+attack
+attack
+attack
+attack
+north
+attack
+attack
+look
+loot
+inventory
+status
+```
 
 **Save those lines to a file and replay them:**
 
@@ -107,11 +121,13 @@ mvn -q exec:java -Dexec.args="--script=mysession.txt"
 
 **Did you get the same game? Why does that depend on something you built in Week 3?**
 
+Yes — the replay was identical: the same monsters in the same rooms, the same damage every turn, the same Ghoul fleeing, the same chest, and the same final status (`HP 36/80  Gold 24  XP 12`). That only works because of Week 3's `RandomSource` Singleton. Every random roll in the game — building the world and the fights — comes from that one seeded source, and the seed comes from `config.json`, so each run starts from the same seed and rolls the same numbers. Feed in the same commands and you get the same game. If each class made its own `new Random()`, the world and the fights would be different every run and the replay would go wrong after the first move.
 
 **Finally:** name a **fifth** capability that falls out of actions-as-objects which the
 pattern's definition doesn't mention. *(Hint: think about the optional GUI track, or about
 anything that isn't a keyboard.)*
 
+Any input source can drive the game, not just the keyboard. A GUI "Attack" button, a hotkey bar, a menu, a network message or an AI player only has to create an `AttackCommand` (or call `parser.parse("attack", ctx)`) and hand it to the same execute-and-push step — no game logic changes at all. The same idea also gives free automated testing: a script file of commands is a repeatable test of a whole play-through.
 
 ## D4 — One honest question · 2 pts
 
@@ -121,5 +137,6 @@ turns. Subclasses fill in one step.
 **You have seen this shape before this week, in a pattern you already know. Which one, and
 where?** *(You built something structurally identical in Week 4.)*
 
+It is the **Template Method** pattern. In Week 4, `RoomPopulator.populate()` is a `final` method with a fixed algorithm, and subclasses like `StandardRoomPopulator`, `TreasureRoomPopulator` and `BossRoomPopulator` fill in the abstract steps (such as `createEncounter()`). `AbstractCommand.execute()` has the same shape: a `final` skeleton (snapshot, act, monster turns) with one abstract step, `doExecute()`, that each command supplies. The difference is intent — in Week 4 the deferred step *creates objects* (so it doubles as a Factory Method), while here it *performs an action*.
 
 **And anything still unclear:**
