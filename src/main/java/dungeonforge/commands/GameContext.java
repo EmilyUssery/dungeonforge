@@ -22,15 +22,23 @@ public class GameContext {
     private final Player player;
     private final EventBus bus;
     private final Combat combat;
+    private final CommandHistory history;
     private Room currentRoom;
     private boolean running = true;
 
-    public GameContext(GameWorld world, Player player, EventBus bus, Combat combat) {
+    public GameContext(GameWorld world, Player player, EventBus bus, Combat combat,
+                       CommandHistory history) {
         this.world = world;
         this.player = player;
         this.bus = bus;
         this.combat = combat;
+        this.history = history;
         this.currentRoom = world.startingRoom();
+    }
+
+    /** Convenience for callers (and the Part A tests) that do not care about history. */
+    public GameContext(GameWorld world, Player player, EventBus bus, Combat combat) {
+        this(world, player, bus, combat, new CommandHistory());
     }
 
     /** One round of monster actions in the current room -- the second half of every turn. */
@@ -66,6 +74,7 @@ public class GameContext {
     public Player getPlayer()          { return player; }
     public EventBus getBus()           { return bus; }
     public Combat getCombat()          { return combat; }
+    public CommandHistory getHistory() { return history; }
     public Room getCurrentRoom()       { return currentRoom; }
     public void setCurrentRoom(Room r) { this.currentRoom = r; }
     public boolean isRunning()         { return running; }

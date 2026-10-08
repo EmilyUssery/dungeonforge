@@ -1,6 +1,7 @@
 package dungeonforge;
 
 import dungeonforge.commands.Command;
+import dungeonforge.commands.CommandHistory;
 import dungeonforge.commands.CommandParser;
 import dungeonforge.commands.GameContext;
 import dungeonforge.config.RandomSource;
@@ -31,7 +32,8 @@ import java.util.ArrayList;
  * WEEK 7 -- the game is INTERACTIVE, and every action is a Command object.
  *
  * gameLoop() used to be a 126-line if/else chain over verbs. It is now three steps that
- * know nothing about any verb: text -> Command (parser), Command -> effect (execute).
+ * know nothing about any verb: text -> Command (parser), Command -> effect (execute),
+ * Command -> undo stack + replay log (history).
  * Adding a verb never touches this file again.
  */
 public final class Main {
@@ -89,7 +91,8 @@ public final class Main {
         bus.subscribe(new DamageMeter(bus, player, 0.25));
         bus.subscribe(new ConsolePrinter());
 
-        GameContext ctx = new GameContext(world, player, bus, new Combat(bus));
+        CommandHistory history = new CommandHistory();
+        GameContext ctx = new GameContext(world, player, bus, new Combat(bus), history);
         CommandParser commands = new CommandParser(quests, achievements);
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
 
@@ -102,13 +105,14 @@ public final class Main {
         if (!player.isAlive()) System.out.println("  You die in the dark.");
     }
 
-    /** US-5.1 AC4: no verb appears here. Parse, execute -- that is the whole loop. */
+    /** US-5.1 AC4: no verb appears here. Parse, execute, remember -- that is the whole loop. */
     private static void gameLoop(CommandParser commands, GameContext ctx, BufferedReader in) {
         while (ctx.isRunning() && ctx.getPlayer().isAlive()) {
             String line = prompt(ctx, in);
             if (line == null) break;
             Command command = commands.parse(line, ctx);
             command.execute();
+            ctx.getHistory().push(command);
         }
     }
 

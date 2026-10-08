@@ -7,6 +7,7 @@ import dungeonforge.items.Item;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -46,6 +47,11 @@ public class CommandParser {
         register("quests",       (c, a) -> new SimpleCommand("quests", () -> showQuests(c)));
         register("achievements", (c, a) -> new SimpleCommand("achievements", () -> showAchievements(c)));
         register("help",         (c, a) -> new SimpleCommand("help", () -> showHelp(c)));
+        register("history",      (c, a) -> new SimpleCommand("history", () -> showHistory(c)));
+        register("undo",         (c, a) -> new SimpleCommand("undo", () -> {
+                                         if (!c.getHistory().undoLast()) c.message("There is nothing to undo.");
+                                         else c.message("Time slips backward one step.");
+                                     }));
         register("quit",         (c, a) -> new SimpleCommand("quit", () -> {
                                          c.message("You lay down your pack.");
                                          c.stop();
@@ -64,6 +70,7 @@ public class CommandParser {
         alias("inv", "inventory");
         alias("q", "quit");
         alias("dr", "drop");
+        alias("u", "undo");
     }
 
     public void register(String verb, CommandFactory factory) { registry.put(verb, factory); }
@@ -99,6 +106,12 @@ public class CommandParser {
     private void showAchievements(GameContext c) {
         if (achievements.getUnlocked().isEmpty()) c.message("(none yet)");
         for (String a : achievements.getUnlocked()) c.message(a);
+    }
+
+    private void showHistory(GameContext c) {
+        List<String> log = c.getHistory().replayLog();
+        if (log.isEmpty()) c.message("(nothing yet)");
+        for (String line : log) c.message(line);
     }
 
     private void showHelp(GameContext c) {
