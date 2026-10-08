@@ -16,6 +16,7 @@ import dungeonforge.events.EventType;
 import dungeonforge.events.GameEvent;
 import dungeonforge.events.GameEventListener;
 import dungeonforge.events.QuestTracker;
+import dungeonforge.items.Hourglass;
 import dungeonforge.items.Potion;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -80,6 +81,7 @@ public final class Main {
 
         Player player = new Player(res.getString("playerName"));
         player.addItem(new Potion("Small Healing Draught", 0.3, 20, 22));
+        player.addItem(new Hourglass(2));                       // US-5.4: make the feature reachable
         GameWorld world = new GameWorld(player);
 
         EventBus bus = new EventBus();
@@ -97,6 +99,7 @@ public final class Main {
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
 
         ctx.message("Type 'help' for what you can do.");
+        ctx.message("You carry a Chronomancer's Hourglass -- 'use hourglass' rewinds one turn.");
         ctx.message(ctx.describeCurrentRoom());
         gameLoop(commands, ctx, in);
 

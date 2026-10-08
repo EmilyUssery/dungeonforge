@@ -1,17 +1,19 @@
 package dungeonforge.commands;
 
+import dungeonforge.core.Room;
 import dungeonforge.events.AchievementSystem;
 import dungeonforge.events.Quest;
 import dungeonforge.events.QuestTracker;
 import dungeonforge.items.Item;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * WEEK 7 (US-5.1) -- turns typed text into a Command object.
+ * WEEK 7 (US-5.1, US-5.3) -- turns typed text into a Command object.
  *
  * Why it exists: it replaces gameLoop()'s if/else chain with a REGISTRY. A verb maps to a
  * CommandFactory; an alias maps to a verb. Adding a verb is one line in registerVerbs(),
@@ -39,6 +41,7 @@ public class CommandParser {
         register("take",         TakeCommand::new);
         register("drop",         DropCommand::new);
         register("use",          UseItemCommand::new);
+        register("loot",         (c, a) -> makeLootMacro(c));
         register("look",         (c, a) -> new SimpleCommand("look",
                                          () -> c.message(c.describeCurrentRoom())));
         register("inventory",    (c, a) -> new SimpleCommand("inventory", () -> showInventory(c)));
@@ -89,6 +92,24 @@ public class CommandParser {
         CommandFactory factory = registry.get(verb);
         if (factory == null) return new NoCommand(ctx.getBus(), "You cannot '" + verb + "' here.");
         return factory.create(ctx, rest);
+    }
+
+    /**
+     * US-5.3: "loot" = one TakeCommand per item on the floor and in the chest, wrapped in a
+     * MacroCommand. A room with nothing to take (or still-living enemies) gets a NoCommand,
+     * so no turn passes.
+     */
+    private Command makeLootMacro(GameContext c) {
+        Room room = c.getCurrentRoom();
+        if (room.hasLivingMonsters()) return new NoCommand(c.getBus(), "Not while something is still living.");
+
+        List<Item> targets = new ArrayList<>(room.getFloorItems());
+        if (room.getChest() != null) targets.addAll(room.getChest().getContents());
+        if (targets.isEmpty()) return new NoCommand(c.getBus(), "There is nothing here to loot.");
+
+        List<Command> children = new ArrayList<>();
+        for (Item item : targets) children.add(new TakeCommand(c, item.getName()));
+        return new MacroCommand("loot", children);
     }
 
     private void showInventory(GameContext c) {
