@@ -82,6 +82,16 @@ everything returns.
 operations." **Did Command actually give you undo?** Answer carefully — there's a real
 distinction here, and it's the most useful thing in this week.
 
+| | HP | XP | Gold | Monster HP |
+|---|---|---|---|---|
+| Before attack | 66 | 0 | 0 | 17 (Ghoul) |
+| After attack | 58 | 0 | 0 | 12 |
+| After snapshot undo | 66 | 0 | 0 | 17 |
+
+Everything came back this time, including my HP.
+
+**Answer:** No, not by itself. Command gave me a *place* for undo: every action is now an object with an `undo()` method, and because it is an object I can keep it on a history stack and call it later. But the pattern did not tell me *what* to put back. My first `undo()` followed the pattern perfectly and was still wrong, because one turn changes far more than the action itself. The real undo needed two more pieces: `TurnSnapshot` (a Memento that records everything a turn can change) and `CommandHistory` (the stack that remembers which command to reverse). So Command makes undo *possible*; Memento plus a history is what makes it *correct*.
+
 
 ## D3 — The capabilities you didn't ask for · 5 pts
 

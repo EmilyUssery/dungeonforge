@@ -75,9 +75,9 @@ alias("dr", "drop");
 
 | | HP | XP | Gold | Monster HP |
 |---|---|---|---|---|
-| Before attack | | | | |
-| After attack | | | | |
-| After snapshot undo | | | | |
+| Before attack | 66 | 0 | 0 | 17 (Ghoul) |
+| After attack | 58 | 0 | 0 | 12 (hit for 10, then healed 5 by the Bone Priest) |
+| After snapshot undo | 66 | 0 | 0 | 17 |
 
 ## 4. AFTER — US-5.3 and US-5.4
 
