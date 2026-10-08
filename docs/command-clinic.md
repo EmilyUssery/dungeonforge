@@ -89,10 +89,6 @@ The pattern's definition lists four things. You wanted one.
 
 **Record a session.** Play for a dozen commands, run `history`, and paste the log:
 
-```
-
-```
-
 **Save those lines to a file and replay them:**
 
 ```bash
