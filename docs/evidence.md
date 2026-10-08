@@ -11,18 +11,32 @@ Play a few turns, then answer:
 **Paste five consecutive `else if` branches from `gameLoop()`:**
 
 ```java
-
+} else if (verb.equals("north") || verb.equals("south") || verb.equals("down")) {
+    ...
+} else if (verb.equals("attack")) {
+    ...
+} else if (verb.equals("look")) {
+    ...
+} else if (verb.equals("take")) {
+    ...
+} else if (verb.equals("use")) {
+    ...
 ```
 
 **You want to add `equip`. List every edit you would make:**
 
+1. `Main.java` — add a new `else if (verb.equals("equip"))` branch inside `gameLoop()`, with its own item lookup, error messages and `tookATurn = true`.
+2. `Main.java` — add `import dungeonforge.items.Weapon;`.
+3. `Main.java` — add `equip <item>` to the `help` text.
+4. `Player.java` — add an equipped-weapon field plus `getEquipped()` / `equip()` methods.
 
 **You want `e` to mean `equip`. List every *additional* edit:**
 
+1. Add `|| verb.equals("e")` to the equip branch's condition — and check no earlier branch already uses `e`, because in an if/else chain the order of the branches decides which one wins.
 
-**You want undo. Where in `gameLoop()` would the code go?** *(There is no good answer. Say
-why in one sentence.)*
+**You want undo. Where in `gameLoop()` would the code go?** *(There is no good answer. Say why in one sentence.)*
 
+There is no good place, because each branch changes the player and the room directly and then disappears — an if-branch is not an object, so nothing remembers what happened or how to reverse it.
 
 ## 2. AFTER — US-5.1
 
@@ -93,4 +107,3 @@ why in one sentence.)*
 ## 7. Sprint review — one sentence
 
 > What can the project do now that it could not do last week?
-

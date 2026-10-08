@@ -9,11 +9,11 @@
 
 | Question | Your answer |
 |---|---|
-| Lines in `Main.gameLoop()` | |
-| Number of `else if` branches | |
-| To add "equip", which file(s) and how many places? | |
-| To add alias "e" for "equip", how many *additional* places? | |
-| Which line of `gameLoop()` would you attach undo to? | |
+| Lines in `Main.gameLoop()` | 126 (lines 113–238 of `Main.java`) |
+| Number of `else if` branches | 13 — 11 on verbs, plus 2 nested inside `take` and `use` |
+| To add "equip", which file(s) and how many places? | 2 files (`Main.java`, `Player.java`), 4 places: a new branch, an import, the help text, and an equipped-weapon field in `Player` |
+| To add alias "e" for "equip", how many *additional* places? | 1 — another `\|\| verb.equals("e")` on the equip branch, plus checking no other branch already claims `e` |
+| Which line of `gameLoop()` would you attach undo to? | None. An if-branch is not an object — once it runs, nothing remembers what it changed, so there is nothing to reverse. |
 
 That last row has no answer, and saying so clearly is worth full marks.
 
@@ -113,4 +113,3 @@ where?** *(You built something structurally identical in Week 4.)*
 
 
 **And anything still unclear:**
-
