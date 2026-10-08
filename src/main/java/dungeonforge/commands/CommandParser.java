@@ -62,7 +62,8 @@ public class CommandParser {
         alias("l", "look");
         alias("i", "inventory");
         alias("inv", "inventory");
-        alias("dr", "drop");S;
+        alias("q", "quit");
+        alias("dr", "drop");
     }
 
     public void register(String verb, CommandFactory factory) { registry.put(verb, factory); }
