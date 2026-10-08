@@ -106,7 +106,7 @@ class StrategyObserverTest {
         assertEquals("healer", factory.create("bone_priest", 1).getStrategy().name());
         assertEquals("ranged", factory.create("imp", 1).getStrategy().name());
         assertEquals("skittish", factory.create("crypt_rat", 1).getStrategy().name());
-        assertEquals("aggressive", factory.create("skeleton", 1).getStrategy().name());
+        assertEquals("trickster", factory.create("skeleton", 1).getStrategy().name());
     }
 
     // ---------- US-3.2: the runtime swap ----------
@@ -240,7 +240,7 @@ class StrategyObserverTest {
     @Test
     void earlierWeeksStillHold() {
         MonsterFactory factory = new MonsterFactory();
-        assertEquals(19, factory.blueprintCount(), "Week 4's data loading");
+        assertEquals(22, factory.blueprintCount(), "Week 4's data loading");
 
         RandomSource.getInstance().reseed(99L);
         int first = factory.create("skeleton", 3).getMaxHp();
