@@ -1,21 +1,32 @@
 package dungeonforge.core;
 
-import java.util.ArrayList;
-
 import dungeonforge.behavior.Action;
 import dungeonforge.behavior.SkittishStrategy;
+import dungeonforge.config.GameConfig;
 import dungeonforge.events.EventBus;
 import dungeonforge.events.EventType;
 import dungeonforge.events.GameEvent;
 
+import javax.security.auth.callback.LanguageCallback;
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * WEEK 5 -- runs a fight in one room.
+ * WEEK 5 -- a minimal encounter resolver. New this week so that monsters have something to
+ * DO. Week 7 turns player actions into Command objects and Week 10 replaces this loop with a
+ * Template Method, so do not polish it -- it is scaffolding.
  *
- * Two rules this class exists to enforce:
- *   1. A CombatStrategy returns a DECISION (an Action). Combat is the only thing that
- *      actually carries that decision out -- strategies never touch hp directly.
- *   2. Combat decides nothing about behaviour beyond asking the strategy, and knows nothing
- *      about who is listening. It publishes events on the EventBus and never prints.
+ * TODO(week 5, US-3.1): look at monsterActs(). Every monster in the game fights the same way,
+ * because "how a monster fights" is an if/else chain living inside this class. A Skeleton and
+ * an Imp are indistinguishable in a fight.
+ *
+ * The obvious fix is to subclass Monster -- AggressiveMonster, RangedMonster, SkittishMonster.
+ * Before you do that, count: we have 15 species and we want 4 behaviours. Do the arithmetic
+ * in docs/strategy-observer-clinic.md Part D1 BEFORE you write any code.
+ *
+ * TODO(week 5, US-3.3): look at everything this class prints, and at the xp/gold bookkeeping.
+ * Combat knows about the console. If we want quests, achievements or a scrolling log, they
+ * all have to be bolted into this class, and it grows forever.
  */
 public class Combat {
 
@@ -25,110 +36,127 @@ public class Combat {
         this.bus = bus;
     }
 
-    /** Fights out one room. Returns true if the player survived, false if the player died. */
-    public boolean fight(Player player, Room room, int depth) {
-        while (player.isAlive() && hasLivingMonster(room)) {
-            for (Monster monster : new ArrayList<>(room.getMonsters())) {
-                if (!monster.isAlive() || !room.getMonsters().contains(monster)) {
-                    continue;
-                }
-                if (!player.isAlive()) {
-                    break;
-                }
+    private static final int MAX_ROUNDS = 40;
 
-                checkForTacticsChange(monster);
-
-                Action action = monster.getStrategy().chooseAction(monster, player, room);
-                resolveMonsterAction(monster, player, room, action);
-            }
-
-            if (!player.isAlive()) {
-                break;
-            }
-
-            Monster target = firstAlive(room);
-            if (target != null) {
-                resolvePlayerAttack(player, target);
-            }
+    /**
+     * WEEK 7 -- one round of MONSTER actions.
+     *
+     * Week 5's fight() ran an entire battle in a single call, because nobody was typing.
+     * Now a human acts one command at a time, so the encounter has to resolve one round at a
+     * time too. The player's half of a round has moved out of this class entirely -- find out
+     * where in US-5.1.
+     */
+    public void monsterTurns(Player player, Room room) {
+        for (Monster m : livingMonsters(room)) {
+            checkForTacticsChange(m);
+            monsterActs(m, player, room);
+            if (!player.isAlive()) break;
         }
-
         if (!player.isAlive()) {
-            return false;
-        }
-
-        bus.publish(GameEvent.of(EventType.ROOM_CLEARED, "room", room.getId()));
-        return true;
-    }
-
-    /** WEEK 5 (US-3.2) -- a badly wounded monster swaps to a skittish strategy, once. */
-    private void checkForTacticsChange(Monster monster) {
-        if (monster.getStrategy() instanceof SkittishStrategy) {
-            return;
-        }
-        if (monster.hpFraction() < SkittishStrategy.FLEE_THRESHOLD) {
-            String from = monster.getStrategy() == null ? "unknown" : monster.getStrategy().name();
-            monster.setStrategy(new SkittishStrategy());
-            bus.publish(GameEvent.of(EventType.STRATEGY_CHANGED,
-                    "name", monster.getSpecies(), "from", from, "to", "skittish"));
+            bus.publish(GameEvent.of(EventType.PLAYER_DIED));
+        } else if (!hasLiving(room)) {
+            bus.publish(GameEvent.of(EventType.ROOM_CLEARED, "room", room.getId()));
         }
     }
 
-    private void resolveMonsterAction(Monster monster, Player player, Room room, Action action) {
-        switch (action.getType()) {
-            case ATTACK -> {
-                int damage = Math.max(1, monster.getAttackPower() - player.getDefense());
-                player.takeDamage(damage);
-                bus.publish(GameEvent.message(monster.getSpecies() + " attacks for " + damage + "."));
-            }
-            case RANGED_ATTACK -> {
-                int damage = Math.max(1, monster.getAttackPower() - player.getDefense());
-                player.takeDamage(damage);
-                bus.publish(GameEvent.message(monster.getSpecies() + " strikes from range for " + damage + "."));
-            }
-            case FLEE -> {
-                room.getMonsters().remove(monster);
-                bus.publish(GameEvent.message(monster.getSpecies() + " flees."));
-            }
-            case HEAL_ALLY -> {
-                Monster ally = action.getTarget();
-                int healAmount = Math.max(1, monster.getAttackPower());
-                ally.heal(healAmount);
-                bus.publish(GameEvent.message(monster.getSpecies() + " mends " + ally.getSpecies() + "."));
-            }
-            case WAIT -> bus.publish(GameEvent.message(monster.getSpecies() + " " + action.getFlavor() + "."));
-        }
+    /** Damage the player deals. Called by whatever represents "the player attacks". */
+    public void playerStrikes(Player player, Monster target) {
+        playerActsOn(player, target);
     }
 
-    private void resolvePlayerAttack(Player player, Monster target) {
-        int damage = Math.max(1, player.getAttackPower());
+    public Monster firstLivingIn(Room room) { return firstLiving(room); }
+
+
+    private void playerActsOn(Player player, Monster target) {
+        // --- player's turn: hit the first thing still standing ---
+
+        int damage = player.getAttackPower();
         target.takeDamage(damage);
+        bus.publish(GameEvent.of(EventType.DAMAGE_DEALT,
+                "target", target.getName(),
+                "amount", damage
+        ));
         if (!target.isAlive()) {
             player.addXp(target.getXpReward());
+            player.addGold(target.getXpReward() * 2);
             bus.publish(GameEvent.of(EventType.MONSTER_DIED,
-                    "name", target.getSpecies(), "xp", target.getXpReward()));
+                    "name", target.getName(), "xp", target.getXpReward()));
+            bus.publish(GameEvent.of(EventType.XP_GAINED, "amount", target.getXpReward()));
+            bus.publish(GameEvent.of(EventType.GOLD_GAINED, "amount", target.getXpReward() * 2));
         }
     }
 
-    private boolean hasLivingMonster(Room room) {
-        for (Monster m : room.getMonsters()) {
-            if (m.isAlive()) {
-                return true;
-            }
-        }
-        return false;
+    private void checkForTacticsChange(Monster m) {
+        double threshold = GameConfig.getInstance().getDouble("fleeThreshold");
+        if (m.hpFraction() >= threshold) return;
+        if (m.getStrategy() instanceof SkittishStrategy) return;
+
+        String from = m.getStrategy().name();
+        m.setStrategy(new SkittishStrategy());
+        bus.publish(GameEvent.of(EventType.STRATEGY_CHANGED,
+                "name", m.getName(), "from", from, "to", m.getStrategy().name()));
     }
 
-    private Monster firstAlive(Room room) {
-        for (Monster m : room.getMonsters()) {
-            if (m.isAlive()) {
-                return m;
+    /**
+     * TODO(week 5, US-3.1 and US-3.2): THIS METHOD IS THE WHOLE PROBLEM.
+     *
+     *  - every monster behaves identically, so species is cosmetic
+     *  - adding a behaviour means editing this method
+     *  - a monster cannot CHANGE tactics when it is badly wounded, because the behaviour
+     *    is not a thing that can be swapped -- it is code baked into the encounter loop
+     */
+    private void monsterActs(Monster m, Player player, Room room) {
+        if(m.getStrategy() == null) return;
+        Action action = m.getStrategy().chooseAction(m, player, room);
+        if( action == null ) return;
+
+        switch (action.getType()) {
+            case ATTACK -> {
+                int dmg = m.getAttackPower();
+                player.takeDamage(dmg);
+                bus.publish(GameEvent.of(EventType.DAMAGE_TAKEN,
+                        "source", m.getName(), "amount", dmg, "flavor", action.getFlavor()));
             }
+            case RANGED_ATTACK ->  {
+                int dmg = Math.max(1, (int)Math.round(m.getAttackPower() * 0.8));
+                player.takeDamage(dmg);
+                bus.publish(GameEvent.of(EventType.DAMAGE_TAKEN,
+                        "source", m.getName(), "amount", dmg, "flavor", action.getFlavor()));
+            }
+            case FLEE -> {
+               room.getMonsters().remove(m);
+                bus.publish(GameEvent.of(EventType.MONSTER_FLED, "name", m.getName()));
+            }
+            case HEAL_ALLY -> {
+                if(action.getTarget() != null) {
+                    bus.message(action.getFlavor());
+                    action.getTarget().heal(5);
+                    bus.publish(GameEvent.of(EventType.MONSTER_HEALED,
+                            "healer", m.getName(), "target", action.getTarget().getName()));
+                }
+            }
+            case WAIT -> bus.publish(GameEvent.message(action.getFlavor()));
         }
+    }
+
+    private boolean hasLiving(Room room) { return firstLiving(room) != null; }
+
+    private Monster firstLiving(Room room) {
+        for (Monster m : room.getMonsters()) if (m.isAlive()) return m;
         return null;
     }
 
-    /** Heals the player a little between rooms. */
+    private List<Monster> livingMonsters(Room room) {
+        List<Monster> out = new ArrayList<>();
+        for (Monster m : room.getMonsters()) if (m.isAlive()) out.add(m);
+        return out;
+    }
+
+    /** Between rooms the player catches their breath. Tunable, so it lives in config. */
+    /** Between rooms the player catches their breath. The dead do not catch their breath. */
     public static void restAfterRoom(Player player) {
-        player.heal(Math.max(1, player.getMaxHp() / 10));
+        if (!player.isAlive()) return;
+        player.heal(GameConfig.getInstance().getInt("restHealPerRoom"));
     }
 }
+

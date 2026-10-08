@@ -26,6 +26,7 @@ public class ConsolePrinter implements GameEventListener {
             case LEVEL_ENTERED -> System.lineSeparator() + "-- entering depth "
                     + event.getInt("depth") + ": " + event.getString("theme") + " --";
             case DELVE_SURVIVED -> System.lineSeparator() + "The delve is survived!";
+            default -> null;
         };
     }
 }

@@ -27,6 +27,11 @@ public class EventBus {
         }
     }
 
+    /** Shortcut so callers can post plain text without building a GameEvent. */
+    public void message(String text) {
+        publish(GameEvent.message(text));
+    }
+
     public int listenerCount() {
         return listeners.size();
     }

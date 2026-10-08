@@ -1,44 +1,46 @@
 package dungeonforge.events;
 
-import java.util.LinkedList;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
-/**
- * WEEK 5 (US-3.4) -- formats events into readable text. It does NOT print -- a separate
- * ConsolePrinter listener decides what actually reaches the screen.
- */
 public class CombatLog implements GameEventListener {
 
-    private final int capacity;
-    private final LinkedList<String> lines = new LinkedList<>();
+    private final Deque<String> lines = new ArrayDeque<>();
+    private final int maxLines;
 
-    public CombatLog(int capacity) {
-        this.capacity = capacity;
-    }
+    public CombatLog(int maxLines) { this.maxLines = maxLines; }
 
     @Override
     public void onEvent(GameEvent event) {
         String line = format(event);
-        if (line == null) {
-            return;
-        }
-        lines.add(line);
-        while (lines.size() > capacity) {
-            lines.removeFirst();
-        }
+        if (line == null) return;
+        lines.addLast(line);
+        while( lines.size() > maxLines ) lines.removeFirst();
     }
 
-    private String format(GameEvent event) {
-        return switch (event.getType()) {
-            case MESSAGE -> event.getString("text");
-            case STRATEGY_CHANGED -> event.getString("name") + " changes tactics: "
-                    + event.getString("from") + " -> " + event.getString("to") + ".";
-            case MONSTER_DIED -> event.getString("name") + " falls, yielding " + event.getInt("xp") + " xp.";
-            case ROOM_CLEARED -> "Room " + event.getString("room") + " is cleared.";
-            case LEVEL_ENTERED -> "-- entering depth " + event.getInt("depth") + ": " + event.getString("theme") + " --";
-            case DELVE_SURVIVED -> "The delve is survived.";
+    private String format(GameEvent e) {
+        return switch (e.getType()) {
+            case MESSAGE -> e.getString("text");
+            case DAMAGE_DEALT -> "You hit " + e.getString("target") + " for " + e.getInt("amount");
+            case DAMAGE_TAKEN -> e.getString("source") + " " + e.getString("flavor") + " for " + e.getInt("amount");
+            case MONSTER_DIED -> e.getString("name") + " dies." + e.getInt("xp");
+            case MONSTER_FLED -> e.getString("name") + " flees into the dark.";
+            case MONSTER_HEALED -> e.getString("healer") + " mends " + e.getString("target");
+            case STRATEGY_CHANGED -> e.getString("name")
+                    + " changes tactics: " + e.getString("from") + " -> "
+                    + e.getString("to");
+            case ROOM_CLEARED -> e.getString("room") + " is quiet.";
+            case LEVEL_ENTERED -> "== level " + e.getString("depth") + " : " + e.getString("theme");
+            case PLAYER_DIED -> "You die in the dark.";
+            case DELVE_SURVIVED -> "You climb back into daylight";
+            default -> null;
         };
     }
 
-    public LinkedList<String> getLines() { return lines; }
+    public Deque<String> getLines() { return lines; }
+
+    /** Used by one-line "print the newest event" views so stale lines are not re-shown. */
+    public void clear() { lines.clear(); }
     public int size() { return lines.size(); }
 }
+

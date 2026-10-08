@@ -26,7 +26,7 @@ public final class MonsterFactory {
 
     @SuppressWarnings("unchecked")
     private void load() {
-        String text = GameConfig.readResource("/data/monsters.json");
+        String text = GameConfig.readResource("monsters.json");
         if (text == null) {
             return; // AC4: missing data file -> factory stays empty, doesn't crash
         }
