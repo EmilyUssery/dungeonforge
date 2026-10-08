@@ -12,15 +12,15 @@ Play a few turns, then answer:
 
 ```java
 } else if (verb.equals("north") || verb.equals("south") || verb.equals("down")) {
-        ...
-        } else if (verb.equals("attack")) {
-        ...
-        } else if (verb.equals("look")) {
-        ...
-        } else if (verb.equals("take")) {
-        ...
-        } else if (verb.equals("use")) {
-        ...
+    ...
+} else if (verb.equals("attack")) {
+    ...
+} else if (verb.equals("look")) {
+    ...
+} else if (verb.equals("take")) {
+    ...
+} else if (verb.equals("use")) {
+    ...
 ```
 
 **You want to add `equip`. List every edit you would make:**
@@ -82,16 +82,58 @@ alias("dr", "drop");
 ## 4. AFTER — US-5.3 and US-5.4
 
 **Paste a `loot` that picks up three things, then an `undo` that puts them all back:**
+[HP 36/80] > drop draught
+You drop Small Healing Draught.
 
-```
+[HP 36/80] > inventory
+- Chronomancer’s Hourglass [2 charges, rewinds one turn]
 
-```
+[HP 36/80] > loot
+You take Small Healing Draught.
+You take Bone Charm.
+You take Bone Shortsword.
+
+[HP 36/80] > inventory
+- Chronomancer’s Hourglass [2 charges, rewinds one turn]
+- Small Healing Draught [heals 22] (0.3kg, 20g)
+- Bone Charm (1.0kg, 75g)
+- Bone Shortsword [dmg 6] (2.0kg, 50g)
+
+[HP 36/80] > look
+[L1R2] Level 1: crypt
+“The air tastes of old dust and older grief.”
+Exits: south, north
+
+[HP 36/80] > undo
+Time slips backward one step.
+
+[HP 36/80] > inventory
+- Chronomancer’s Hourglass [2 charges, rewinds one turn]
+
+[HP 36/80] > look
+[L1R2] Level 1: crypt
+“The air tastes of old dust and older grief.”
+On the floor: Small Healing Draught [heals 22] (0.3kg, 20g)
+Iron-Bound Chest:
+- Bone Charm (1.0kg, 75g)
+- Bone Shortsword [dmg 6] (2.0kg, 50g)
+Exits: south, north
+
+One `loot` took all three items (one from the floor, two from the chest). One `undo` put every one of them back where it came from.
 
 **Paste the hourglass rewinding a turn, with `inventory` before and after:**
+[HP 46/80] > inventory
+- Small Healing Draught [heals 22] (0.3kg, 20g)
+- Chronomancer’s Hourglass [2 charges, rewinds one turn]
 
-```
+[HP 46/80] > use hourglass
+The sand runs backwards. The last moment unhappens. (1 charges left)
 
-```
+[HP 52/80] > inventory
+- Small Healing Draught [heals 22] (0.3kg, 20g)
+- Chronomancer’s Hourglass [1 charges, rewinds one turn]
+
+The hourglass undid the last attack turn (HP back from 46 to 52, the Bone Priest's hit reversed), spent one charge, and did not use up a turn.
 
 **How long did US-5.4 actually take you?** ____ minutes
 
@@ -99,17 +141,9 @@ alias("dr", "drop");
 
 **Paste your `history` output and the first ten lines of replaying it with `--script=`:**
 
-```
-
-```
-
 ## 6. Tests and CI
 
 **`mvn test` summary:**
-
-```
-
-```
 
 **Green CI URL:**
 
