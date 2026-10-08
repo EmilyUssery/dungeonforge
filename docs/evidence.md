@@ -12,15 +12,15 @@ Play a few turns, then answer:
 
 ```java
 } else if (verb.equals("north") || verb.equals("south") || verb.equals("down")) {
-    ...
-} else if (verb.equals("attack")) {
-    ...
-} else if (verb.equals("look")) {
-    ...
-} else if (verb.equals("take")) {
-    ...
-} else if (verb.equals("use")) {
-    ...
+        ...
+        } else if (verb.equals("attack")) {
+        ...
+        } else if (verb.equals("look")) {
+        ...
+        } else if (verb.equals("take")) {
+        ...
+        } else if (verb.equals("use")) {
+        ...
 ```
 
 **You want to add `equip`. List every edit you would make:**
@@ -43,13 +43,21 @@ There is no good place, because each branch changes the player and the room dire
 **Paste your new `gameLoop()` in full. It should fit in a dozen lines:**
 
 ```java
-
+private static void gameLoop(CommandParser commands, GameContext ctx, BufferedReader in) {
+    while (ctx.isRunning() && ctx.getPlayer().isAlive()) {
+        String line = prompt(ctx, in);
+        if (line == null) break;
+        Command command = commands.parse(line, ctx);
+        command.execute();
+    }
+}
 ```
 
 **Paste the registry lines that add `drop` and its alias:**
 
 ```java
-
+register("drop", DropCommand::new);
+alias("dr", "drop");
 ```
 
 ## 3. AFTER — US-5.2
@@ -106,4 +114,4 @@ There is no good place, because each branch changes the player and the room dire
 
 ## 7. Sprint review — one sentence
 
-> What can the project do now that it could not do last week?
+> What can the project do now that it could not do last week?ot do last week?
