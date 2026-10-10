@@ -200,7 +200,7 @@ The replay ended with exactly the same status as the live game: `HP 36/80  Gold 
 [INFO] BUILD SUCCESS
 ```
 
-**Green CI URL:**
+**Green CI URL:** https://github.com/EmilyUssery/dungeonforge/pull/60 (build check passed on the PR and on main)
 
 ## 7. Sprint review — one sentence
 
