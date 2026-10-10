@@ -141,7 +141,7 @@ One `loot` took all three items (one from the floor, two from the chest). One `u
 
 The hourglass undid the last attack turn (HP back from 46 to 52, the Bone Priest's hit reversed), spent one charge, and did not use up a turn.
 
-**How long did US-5.4 actually take you?** ____ minutes
+**How long did US-5.4 actually take you?** 45 minutes
 
 ## 5. The replay
 
