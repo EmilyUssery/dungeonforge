@@ -4,7 +4,10 @@ import dungeonforge.items.Item;
 
 import java.util.List;
 
-/** WEEK 7 (US-5.1) -- pick up one item from the floor or the room's chest. */
+/**
+ * WEEK 7 (US-5.1) -- pick up one item from the floor or the room's chest.
+ * WEEK 8 (US-6.1) -- mode guard deleted; CombatState does not list "take".
+ */
 public class TakeCommand extends AbstractCommand {
 
     public TakeCommand(GameContext ctx, String itemName) {
@@ -13,10 +16,6 @@ public class TakeCommand extends AbstractCommand {
 
     @Override
     protected boolean doExecute() {
-        if (room().hasLivingMonsters()) {
-            say("Not while something is still living.");
-            return false;
-        }
         Item found = removeMatching(room().getFloorItems());
         if (found == null && room().getChest() != null) {
             found = removeMatching(room().getChest().getContents());

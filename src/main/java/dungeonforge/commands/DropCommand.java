@@ -5,6 +5,7 @@ import dungeonforge.items.Item;
 /**
  * WEEK 7 (US-5.1, AC5) -- leave an item on the floor.
  * Added as ONE new class plus ONE registry line; no existing command changed.
+ * WEEK 8 (US-6.1) -- mode guard deleted; CombatState does not list "drop".
  */
 public class DropCommand extends AbstractCommand {
 
@@ -14,11 +15,6 @@ public class DropCommand extends AbstractCommand {
 
     @Override
     protected boolean doExecute() {
-        // TODO(week 8, US-6.1): guard #3. MoveCommand and TakeCommand have one of these too.
-        if (room().hasLivingMonsters()) {
-            say("You are a little busy for inventory management.");
-            return false;
-        }
         Item item = player().findItem(args);
         if (item == null) {
             say("You are not carrying anything like that.");

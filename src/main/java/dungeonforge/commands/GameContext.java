@@ -8,9 +8,19 @@ import dungeonforge.core.Player;
 import dungeonforge.core.Room;
 import dungeonforge.events.EventBus;
 import dungeonforge.items.Item;
+import dungeonforge.states.CombatState;
+import dungeonforge.states.ExploringState;
+import dungeonforge.states.GameOverState;
+import dungeonforge.states.GameState;
+import dungeonforge.states.InventoryState;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * WEEK 7 (US-5.1) -- the Command pattern's RECEIVER, bundled.
+ * WEEK 8 (US-6.1) -- also the State pattern's CONTEXT: it holds the current GameState, and
+ * the verbs that are legal right now come from that state, not from checks in each command.
  *
  * Why it exists: almost every command touches the same handful of objects. Bundling them
  * here means each command holds ONE reference instead of five, and adding a new shared
@@ -24,7 +34,7 @@ public class GameContext {
     private final Combat combat;
     private final CommandHistory history;
     private Room currentRoom;
-    private boolean running = true;
+    private GameState state = new ExploringState();     // Week 8: replaces "boolean running"
 
     public GameContext(GameWorld world, Player player, EventBus bus, Combat combat,
                        CommandHistory history) {
@@ -49,6 +59,61 @@ public class GameContext {
     /** Post a line of text for the player. */
     public void message(String text) { bus.message(text); }
 
+    // ------------------------------------------------------------------ WEEK 8: STATE
+
+    /** Leave the current mode and enter the next one, running both hooks. */
+    public void transitionTo(GameState next) {
+        state.onExit(this);
+        state = next;
+        next.onEnter(this);
+    }
+
+    /** US-6.1: the verbs legal right now. The parser AND help both read this one list. */
+    public List<String> allowedVerbs() { return state.availableCommands(); }
+
+    /**
+     * US-6.1 / US-6.2: the WORLD's condition picks the mode, never the UI.
+     * Called once per iteration of the game loop.
+     */
+    public void syncState() {
+        if (state instanceof GameOverState) return;                  // the dead stay dead
+        if (!player.isAlive()) {                                     // US-6.2 AC4
+            transitionTo(new GameOverState());
+            return;
+        }
+        if (state instanceof InventoryState) return;                 // US-6.2 AC3: chosen on purpose
+        boolean fighting = combat.firstLivingIn(currentRoom) != null;
+        if (fighting && !(state instanceof CombatState)) {
+            transitionTo(new CombatState());
+        } else if (!fighting && !(state instanceof ExploringState)) {
+            transitionTo(new ExploringState());
+        }
+    }
+
+    /** US-6.2: "pack" -- a mode the player enters on purpose. */
+    public void openPack()  { transitionTo(new InventoryState()); }
+
+    /** US-6.2: "back" -- leave the pack; the world then decides whether we are fighting. */
+    public void closePack() {
+        transitionTo(new ExploringState());
+        syncState();
+    }
+
+    public GameState getState() { return state; }
+
+    /** The game keeps running until "quit" closes the Game Over state. */
+    public boolean isRunning() {
+        return !(state instanceof GameOverState over && over.isClosed());
+    }
+
+    /** "quit": end up in Game Over, and close it. */
+    public void stop() {
+        if (!(state instanceof GameOverState)) transitionTo(new GameOverState());
+        ((GameOverState) state).close();
+    }
+
+    // ------------------------------------------------------------------
+
     /** What the player sees on "look" and after moving. */
     public String describeCurrentRoom() {
         Room room = currentRoom;
@@ -57,10 +122,9 @@ public class GameContext {
         b.append("[").append(room.getId()).append("] Level ").append(level.getDepth())
          .append(": ").append(level.getThemeName());
         if (!room.getFlavor().isEmpty()) b.append("\n    \"").append(room.getFlavor()).append("\"");
-        if (room.hasLivingMonsters()) {
-            b.append("\n    Hostile:");
-            for (Monster m : room.getMonsters()) if (m.isAlive()) b.append(" ").append(m.describe());
-        }
+        List<String> hostiles = new ArrayList<>();
+        for (Monster m : room.getMonsters()) if (m.isAlive()) hostiles.add(m.describe());
+        if (!hostiles.isEmpty()) b.append("\n    Hostile: ").append(String.join(" ", hostiles));
         for (Item i : room.getFloorItems()) b.append("\n    On the floor: ").append(i.describe());
         if (room.getChest() != null && !room.getChest().getContents().isEmpty()) {
             b.append("\n    ").append(room.getChest().getName()).append(":");
@@ -77,6 +141,4 @@ public class GameContext {
     public CommandHistory getHistory() { return history; }
     public Room getCurrentRoom()       { return currentRoom; }
     public void setCurrentRoom(Room r) { this.currentRoom = r; }
-    public boolean isRunning()         { return running; }
-    public void stop()                 { this.running = false; }
 }

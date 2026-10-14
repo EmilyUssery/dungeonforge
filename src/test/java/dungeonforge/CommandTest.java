@@ -46,10 +46,13 @@ class CommandTest {
         parser = new CommandParser(quests, achievements);
     }
 
+    /** Week 8: like Main's loop, let the world pick the mode before each command. */
     private void run(String input) {
+        ctx.syncState();
         Command c = parser.parse(input, ctx);
         c.execute();
         history.push(c);
+        ctx.syncState();
     }
 
     // ---------- US-5.1: every action is an object ----------

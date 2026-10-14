@@ -18,6 +18,9 @@ import java.util.Map;
  * Why it exists: it replaces gameLoop()'s if/else chain with a REGISTRY. A verb maps to a
  * CommandFactory; an alias maps to a verb. Adding a verb is one line in registerVerbs(),
  * adding an alias is one line in registerAliases(), and no branch is ever written.
+ *
+ * WEEK 8 (US-6.1) -- the parser is also the GATE: a verb the current GameState does not list
+ * becomes a NoCommand. A new verb that no state lists is therefore unavailable everywhere.
  */
 public class CommandParser {
 
@@ -55,6 +58,8 @@ public class CommandParser {
                                          if (!c.getHistory().undoLast()) c.message("There is nothing to undo.");
                                          else c.message("Time slips backward one step.");
                                      }));
+        register("pack",         (c, a) -> new SimpleCommand("pack", c::openPack));    // US-6.2
+        register("back",         (c, a) -> new SimpleCommand("back", c::closePack));   // US-6.2
         register("quit",         (c, a) -> new SimpleCommand("quit", () -> {
                                          c.message("You lay down your pack.");
                                          c.stop();
@@ -90,18 +95,23 @@ public class CommandParser {
 
         verb = aliases.getOrDefault(verb, verb);
         CommandFactory factory = registry.get(verb);
-        if (factory == null) return new NoCommand(ctx.getBus(), "You cannot '" + verb + "' here.");
+        if (factory == null) return new NoCommand(ctx.getBus(), "I don't know how to '" + verb + "'.");
+
+        // US-6.1: the current mode decides what is legal. No command checks this itself.
+        if (!ctx.allowedVerbs().contains(verb)) {
+            return new NoCommand(ctx.getBus(), "You can't '" + verb + "' right now ("
+                    + ctx.getState().name() + "). You can: " + String.join(", ", ctx.allowedVerbs()));
+        }
         return factory.create(ctx, rest);
     }
 
     /**
      * US-5.3: "loot" = one TakeCommand per item on the floor and in the chest, wrapped in a
-     * MacroCommand. A room with nothing to take (or still-living enemies) gets a NoCommand,
-     * so no turn passes.
+     * MacroCommand. A room with nothing to take gets a NoCommand, so no turn passes.
+     * WEEK 8: the "still-living enemies" check is gone -- "loot" is not a Combat verb.
      */
     private Command makeLootMacro(GameContext c) {
         Room room = c.getCurrentRoom();
-        if (room.hasLivingMonsters()) return new NoCommand(c.getBus(), "Not while something is still living.");
 
         List<Item> targets = new ArrayList<>(room.getFloorItems());
         if (room.getChest() != null) targets.addAll(room.getChest().getContents());
@@ -135,8 +145,15 @@ public class CommandParser {
         for (String line : log) c.message(line);
     }
 
+    /** US-6.1 AC3: help reads the SAME list the gate uses, so it can never drift. */
     private void showHelp(GameContext c) {
-        c.message("Verbs: " + String.join(", ", registry.keySet()));
-        c.message("Aliases: " + aliases);
+        List<String> verbs = c.allowedVerbs();
+        c.message(c.getState().name() + " -- you can: " + String.join(", ", verbs));
+        List<String> shortcuts = new ArrayList<>();
+        for (Map.Entry<String, String> a : aliases.entrySet()) {
+            if (verbs.contains(a.getValue())) shortcuts.add(a.getKey() + "=" + a.getValue());
+        }
+        java.util.Collections.sort(shortcuts);
+        if (!shortcuts.isEmpty()) c.message("Shortcuts: " + String.join(", ", shortcuts));
     }
 }
