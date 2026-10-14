@@ -1,12 +1,12 @@
 package dungeonforge.core;
 
 import dungeonforge.behavior.Action;
-import dungeonforge.behavior.AggressiveStrategy;
-import dungeonforge.behavior.SkittishStrategy;
 import dungeonforge.config.GameConfig;
 import dungeonforge.events.EventBus;
 import dungeonforge.events.EventType;
 import dungeonforge.events.GameEvent;
+import dungeonforge.states.DeadState;
+import dungeonforge.states.MonsterState;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,23 +14,17 @@ import java.util.List;
 /**
  * WEEK 5 -- strategies decide HOW a monster fights.
  * WEEK 7 -- one round at a time, because a human is typing.
+ * WEEK 8 (US-6.3) -- monsters have a LIFECYCLE, and this class no longer knows its shape.
  *
- * TODO(week 8, US-6.3): now look at what happened to this class.
+ * The Week 7 version kept the lifecycle as a String and branched on it in three places
+ * (the transitions, "may it act?", "is it enraged?"). Each of those is now ONE question asked
+ * of the monster's current MonsterState object:
  *
- * A monster has a LIFECYCLE -- idle, hunting, enraged, fleeing, dead -- and that lifecycle is
- * currently expressed as a String field plus conditionals in THREE separate places below:
+ *   m.setState(m.getState().next(m, player));   // what comes next? the state decides
+ *   if (!m.getState().canAct()) return;          // may it act?      the state answers
+ *   base * m.getState().damageMultiplier()       // how hard?        the state answers
  *
- *   updateMonsterState()  the transitions themselves, as nested ifs
- *   monsterActs()         "can this monster act at all?"
- *   damageFrom()          "is it enraged, and therefore hitting harder?"
- *
- * Chapter 10 of your textbook opens with exactly this design and then dismantles it. Before
- * you start, answer these in docs/evidence.md:
- *
- *   1. Add a "stunned" state that lasts one turn. How many methods below must you edit?
- *   2. Reading updateMonsterState(), can you tell at a glance which states can follow
- *      "enraged"? How long did it take you to be sure?
- *   3. What stops someone writing m.setStateName("dancing") somewhere and breaking everything?
+ * Adding a new state now means adding a class; this file does not change.
  */
 public class Combat {
 
@@ -41,8 +35,8 @@ public class Combat {
     /** One round of MONSTER actions. */
     public void monsterTurns(Player player, Room room) {
         for (Monster m : livingMonsters(room)) {
-            updateMonsterState(m);
-            monsterActs(m, player, room);
+            monsterActs(m, player, room);          // act on the CURRENT state first...
+            transition(m, player);                 // ...then let the state pick what comes next
             if (!player.isAlive()) break;
         }
         if (!player.isAlive()) {
@@ -53,61 +47,21 @@ public class Combat {
     }
 
     /**
-     * TODO(week 8): PLACE 1 OF 3 -- the transitions, as nested conditionals.
-     *
-     * Every arrow in the monster's lifecycle is buried in here somewhere, and the ones that
-     * are ABSENT (dead never becomes hunting) are invisible -- they are simply branches that
-     * were never written.
+     * US-6.3: the whole Week 7 updateMonsterState() -- forty lines of nested ifs -- is now one
+     * line. The CURRENT state knows its own outbound arrows and returns its successor.
      */
-    private void updateMonsterState(Monster m) {
-        double flee = GameConfig.getInstance().getDouble("fleeThreshold");
-        double enrage = GameConfig.getInstance().getDouble("enrageThreshold");
-        String current = m.getStateName();
-
-        if (!m.isAlive()) {
-            announce(m, current, "dead");
-            m.setStateName("dead");
-            return;
-        }
-        if (current.equals("idle")) {
-            announce(m, current, "hunting");
-            m.setStateName("hunting");
-            return;
-        }
-        if (current.equals("hunting")) {
-            if (m.hpFraction() < flee) {
-                announce(m, current, "fleeing");
-                m.setStateName("fleeing");
-                m.setStrategy(new SkittishStrategy());
-            } else if (m.hpFraction() < enrage) {
-                announce(m, current, "enraged");
-                m.setStateName("enraged");
-                m.setStrategy(new AggressiveStrategy());
-            }
-            return;
-        }
-        if (current.equals("enraged")) {
-            if (m.hpFraction() < flee) {
-                announce(m, current, "fleeing");
-                m.setStateName("fleeing");
-                m.setStrategy(new SkittishStrategy());
-            }
-            return;
-        }
-        // "fleeing" and "dead" have no outbound transitions -- but you can only discover that
-        // by noticing the absence of branches, which is not a great way to learn a state machine.
-    }
-
-    private void announce(Monster m, String from, String to) {
-        if (from.equals(to)) return;
+    private void transition(Monster m, Player player) {
+        MonsterState before = m.getState();
+        MonsterState after = before.next(m, player);
+        if (after == before) return;
+        m.setState(after);                         // runs after.onEnter(m), which may swap the strategy
         bus.publish(GameEvent.of(EventType.STRATEGY_CHANGED,
-                "name", m.getName(), "from", from, "to", to));
+                "name", m.getName(), "from", before.label(), "to", after.label()));
     }
 
-    /** TODO(week 8): PLACE 2 OF 3 -- "may this monster act?", as a conditional. */
+    /** US-6.3: "may this monster act?" is asked of the state, not answered with a conditional. */
     private void monsterActs(Monster m, Player player, Room room) {
-        String state = m.getStateName();
-        if (state.equals("idle") || state.equals("dead")) return;
+        if (!m.getState().canAct()) return;
         if (m.getStrategy() == null) return;
 
         Action action = m.getStrategy().chooseAction(m, player, room);
@@ -142,13 +96,9 @@ public class Combat {
         }
     }
 
-    /** TODO(week 8): PLACE 3 OF 3 -- "is it enraged?", as another conditional. */
+    /** US-6.3: "how hard does it hit?" -- enraged and fleeing states answer differently. */
     private int damageFrom(Monster m) {
-        int base = m.getAttackPower();
-        if (m.getStateName().equals("enraged")) {
-            return (int) Math.round(base * 1.5);
-        }
-        return base;
+        return Math.max(1, (int) Math.round(m.getAttackPower() * m.getState().damageMultiplier()));
     }
 
     public void playerStrikes(Player player, Monster target) {
@@ -158,7 +108,7 @@ public class Combat {
                 "target", target.getName(), "amount", damage));
 
         if (!target.isAlive()) {
-            target.setStateName("dead");
+            target.setState(new DeadState());
             player.addXp(target.getXpReward());
             player.addGold(target.getXpReward() * 2);
             bus.publish(GameEvent.of(EventType.MONSTER_DIED,

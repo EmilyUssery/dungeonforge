@@ -119,6 +119,7 @@ class CommandTest {
         Room room = ctx.getCurrentRoom();
         Monster m = new Monster("Test Dummy", 40, 6, 9);
         m.setStrategy(new dungeonforge.behavior.AggressiveStrategy());
+        m.setState(new dungeonforge.states.HuntingState());   // Week 8: an IDLE monster cannot act on round one
         room.getMonsters().add(m);
 
         int hpBefore = player.getHp();
