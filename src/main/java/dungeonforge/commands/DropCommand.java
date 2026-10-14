@@ -5,6 +5,7 @@ import dungeonforge.items.Item;
 /**
  * WEEK 7 (US-5.1, AC5) -- leave an item on the floor.
  * Added as ONE new class plus ONE registry line; no existing command changed.
+ * WEEK 8 (US-6.1) -- mode guard deleted; CombatState does not list "drop".
  */
 public class DropCommand extends AbstractCommand {
 

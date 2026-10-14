@@ -34,6 +34,8 @@ import java.util.List;
 
 /**
  * WEEK 7 -- the game is INTERACTIVE, and every action is a Command object.
+ * WEEK 8 -- the game has MODES (State pattern): the prompt shows the mode, and only that
+ * mode's verbs are accepted.
  *
  * gameLoop() used to be a 126-line if/else chain over verbs. It is now three steps that
  * know nothing about any verb: text -> Command (parser), Command -> effect (execute),
@@ -42,7 +44,7 @@ import java.util.List;
  */
 public final class Main {
 
-    public static final String VERSION = "0.7.0";
+    public static final String VERSION = "0.8.0";
 
     private Main() { }
 
@@ -122,12 +124,16 @@ public final class Main {
 
         System.out.println();
         System.out.println("  " + player.describe());
-        if (!player.isAlive()) System.out.println("  You die in the dark.");
     }
 
-    /** US-5.1 AC4: no verb appears here. Parse, execute, remember -- that is the whole loop. */
+    /**
+     * US-5.1 AC4: no verb appears here. Parse, execute, remember -- that is the whole loop.
+     * WEEK 8: syncState() once per iteration lets the world pick the mode; the loop no longer
+     * checks whether the player is alive -- GameOverState owns that rule.
+     */
     private static void gameLoop(CommandParser commands, GameContext ctx, BufferedReader in) {
-        while (ctx.isRunning() && ctx.getPlayer().isAlive()) {
+        while (ctx.isRunning()) {
+            ctx.syncState();
             String line = prompt(ctx, in);
             if (line == null) break;
             Command command = commands.parse(line, ctx);
@@ -144,8 +150,9 @@ public final class Main {
     private static void runScript(CommandParser commands, GameContext ctx, List<String> lines) {
         for (String line : lines) {
             if (line.isBlank() || line.trim().startsWith("#")) continue;
-            if (!ctx.isRunning() || !ctx.getPlayer().isAlive()) break;
-            System.out.println("\n[script] > " + line);
+            if (!ctx.isRunning()) break;
+            ctx.syncState();
+            System.out.println("\n[script " + ctx.getState().name() + "] > " + line);
             Command command = commands.parse(line, ctx);
             command.execute();
             ctx.getHistory().push(command);
@@ -155,7 +162,7 @@ public final class Main {
     /** Shows the HP prompt and reads one line; null means input has ended. */
     private static String prompt(GameContext ctx, BufferedReader in) {
         Player p = ctx.getPlayer();
-        System.out.print("\n[HP " + p.getHp() + "/" + p.getMaxHp() + "] > ");
+        System.out.print("\n[" + ctx.getState().name() + " | HP " + p.getHp() + "/" + p.getMaxHp() + "] > ");
         System.out.flush();
         try {
             String line = in.readLine();
