@@ -232,7 +232,7 @@ owns *when* (the lifecycle) and the strategy only owns *how* (the tactics inside
 [INFO] BUILD SUCCESS
 ```
 
-**Green CI URL:**
+**Green CI URL:** https://github.com/EmilyUssery/dungeonforge/pull/65 (build check passed)
 
 ## 6. Sprint review — one sentence
 
