@@ -10,6 +10,7 @@
 
   "restHealPerRoom": 8,
   "fleeThreshold": 0.30,
+  "enrageThreshold": 0.45,
 
   "undoDepth": 25,
 
