@@ -1,23 +1,13 @@
 package dungeonforge.items;
 
-/**
- * WEEK 9 STARTER -- a weapon that burns. One enchantment.
- *
- * PART OF THE PROBLEM. Do not improve this class. Count it.
- */
-public class FlamingWeapon extends Weapon {
+/** WEEK 9 (US-7.1) -- a concrete decorator: fire adds damage. The ONLY file that knows how much. */
+public class FlamingWeapon extends WeaponDecorator {
 
-    public FlamingWeapon(String name, double weight, int value, int damage) {
-        super(name, weight, value, damage);
-    }
+    private static final int FIRE_BONUS = 4;
 
-    @Override public int getDamage()  { return damage + 4; }
-    @Override public int getValue()   { return value + 60; }
-    @Override public int lifesteal()  { return 0; }
+    public FlamingWeapon(Weapon wrapped) { super(wrapped); }
 
-    @Override
-    public String describe() {
-        return "Flaming " + name + " [dmg " + getDamage() + "]"
-                + " (" + String.format("%.1f", weight) + "kg, " + getValue() + "g)";
-    }
+    @Override public int getDamage()        { return wrapped.getDamage() + FIRE_BONUS; }
+    @Override protected String prefix()     { return "Flaming"; }
+    @Override protected int valueBonus()    { return 60; }
 }

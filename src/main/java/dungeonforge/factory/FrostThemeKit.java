@@ -8,6 +8,7 @@ import dungeonforge.items.Potion;
 import dungeonforge.items.Treasure;
 import dungeonforge.items.Weapon;
 import dungeonforge.items.FrostWeapon;
+import dungeonforge.items.BasicWeapon;
 
 /** WEEK 4 -- ABSTRACT FACTORY. Cold, rime, things that were people. */
 public class FrostThemeKit implements ThemeKit {
@@ -39,10 +40,8 @@ public class FrostThemeKit implements ThemeKit {
     @Override
     public Item createLoot(int depth) {
         switch (RandomSource.getInstance().nextInt(4)) {
-            // WEEK 9 STARTER -- the theme decides which of the seven subclasses to name. A kit
-            // should be able to say "fiery" without a class existing for every combination of
-            // fiery with everything else. Right now it cannot.
-            case 0:  return new FrostWeapon("Rime Shard", 1.5, 50 + depth * 11, 6 + depth);
+            // WEEK 9 (US-7.1) -- the theme wraps a plain weapon instead of naming a subclass.
+            case 0:  return new FrostWeapon(new BasicWeapon("Rime Shard", 1.5, 50 + depth * 11, 6 + depth));
             case 1:  return new Armor("Frostweave Cloak", 2.0, 45 + depth * 9, 3 + depth);
             case 2:  return new Potion("Warming Cordial", 0.4, 28, 20 + depth * 3);
             default: return new Treasure("Frozen Tear", 0.1, 90 + depth * 20);

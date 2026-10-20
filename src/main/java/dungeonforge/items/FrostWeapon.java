@@ -1,23 +1,13 @@
 package dungeonforge.items;
 
-/**
- * WEEK 9 STARTER -- a weapon that bites with cold. One enchantment.
- *
- * PART OF THE PROBLEM. Do not improve this class. Count it.
- */
-public class FrostWeapon extends Weapon {
+/** WEEK 9 (US-7.1) -- a concrete decorator: cold adds damage, a little less than fire. */
+public class FrostWeapon extends WeaponDecorator {
 
-    public FrostWeapon(String name, double weight, int value, int damage) {
-        super(name, weight, value, damage);
-    }
+    private static final int FROST_BONUS = 3;
 
-    @Override public int getDamage()  { return damage + 3; }
-    @Override public int getValue()   { return value + 45; }
-    @Override public int lifesteal()  { return 0; }
+    public FrostWeapon(Weapon wrapped) { super(wrapped); }
 
-    @Override
-    public String describe() {
-        return "Frost " + name + " [dmg " + getDamage() + "]"
-                + " (" + String.format("%.1f", weight) + "kg, " + getValue() + "g)";
-    }
+    @Override public int getDamage()        { return wrapped.getDamage() + FROST_BONUS; }
+    @Override protected String prefix()     { return "Frost"; }
+    @Override protected int valueBonus()    { return 45; }
 }
