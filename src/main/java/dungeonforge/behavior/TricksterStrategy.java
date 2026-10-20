@@ -17,7 +17,7 @@ public class TricksterStrategy implements CombatStrategy {
     @Override
     public Action chooseAction(Monster self, Player target, Room room) {
         if (RandomSource.getInstance().nextDouble() < 0.5) {
-            return Action.attack();
+            return new Action(Action.Type.ATTACK, target, self.getName() + " darts in with a sudden strike");
         }
         return Action.wait("feints and circles, looking for an opening");
     }
