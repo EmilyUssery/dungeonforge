@@ -48,8 +48,13 @@ public class GameContext {
         next.onEnter(this);
     }
 
+    /**
+     * US-6.7 -- decides the MODE from the world only. The session flag is not consulted here;
+     * it answers a different question ("keep reading input?") and only the loop asks it.
+     */
     public void syncState() {
-        if (!player.isAlive() || !running) {
+        if (state.isTerminal()) return;          // first: a terminal state is somewhere you stay
+        if (!player.isAlive()) {
             transitionTo(new GameOverState());
             return;
         }

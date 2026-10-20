@@ -7,6 +7,7 @@ import dungeonforge.events.AchievementSystem;
 import dungeonforge.events.Quest;
 import dungeonforge.events.QuestTracker;
 import dungeonforge.items.Item;
+import dungeonforge.states.GameOverState;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -155,7 +156,8 @@ public class CommandParser {
 
         register("quit", (c, a) -> new SimpleCommand("quit", () -> {
             c.getBus().message("You lay down your pack.");
-            c.stop();
+            c.transitionTo(new GameOverState());   // the adventure is over...
+            c.stop();                              // ...and so is the session. Two facts.
         }));
         alias("exit", "quit");
     }
