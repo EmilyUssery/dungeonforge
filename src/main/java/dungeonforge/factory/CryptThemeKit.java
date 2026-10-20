@@ -8,6 +8,7 @@ import dungeonforge.items.Potion;
 import dungeonforge.items.Treasure;
 import dungeonforge.items.Weapon;
 import dungeonforge.items.VampiricWeapon;
+import dungeonforge.items.BasicWeapon;
 
 /** WEEK 4 -- ABSTRACT FACTORY. Damp stone, the undead, bone charms. */
 public class CryptThemeKit implements ThemeKit {
@@ -39,10 +40,8 @@ public class CryptThemeKit implements ThemeKit {
     @Override
     public Item createLoot(int depth) {
         switch (RandomSource.getInstance().nextInt(4)) {
-            // WEEK 9 STARTER -- the theme decides which of the seven subclasses to name. A kit
-            // should be able to say "fiery" without a class existing for every combination of
-            // fiery with everything else. Right now it cannot.
-            case 0:  return new VampiricWeapon("Bone Shortsword", 2.0, 40 + depth * 10, 5 + depth);
+            // WEEK 9 (US-7.1) -- the theme wraps a plain weapon instead of naming a subclass.
+            case 0:  return new VampiricWeapon(new BasicWeapon("Bone Shortsword", 2.0, 40 + depth * 10, 5 + depth));
             case 1:  return new Armor("Grave Shroud", 3.0, 35 + depth * 8, 2 + depth);
             case 2:  return new Potion("Vial of Still Water", 0.4, 25, 18 + depth * 3);
             default: return new Treasure("Bone Charm", 0.2, 60 + depth * 15);
