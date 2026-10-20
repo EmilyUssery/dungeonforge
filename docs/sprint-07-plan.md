@@ -332,11 +332,11 @@ counted.
 
 | Story | Estimated | Actual hours | High, low, about right? |
 |---|---|---|---|
-| US-6.7 | 1 | | |
-| US-7.1 | 4 | | |
-| US-7.2 | 3 | | |
-| US-7.3 | 1 | | |
-| US-7.4 | 2 | | |
+| US-6.7 | 1 | 0.5 | About right |
+| US-7.1 | 4 | 2 | About right, the deletions and fixing call sites took most of it |
+| US-7.2 | 3 | 1.5 | About right |
+| US-7.3 | 1 | 0.5 | About right, one class and one line |
+| US-7.4 | 2 | 0.5 | High, the tests were quick once the decorators existed |
 
 **Points completed:** 11 of 11 · **Running velocity:** ____ *(average your Completed column)*
 
