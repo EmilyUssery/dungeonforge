@@ -4,13 +4,8 @@ import dungeonforge.behavior.SkittishStrategy;
 import dungeonforge.core.Monster;
 import dungeonforge.core.Player;
 
-/**
- * WEEK 8 (US-6.3) -- badly hurt and trying to escape. Hits at half strength.
- * US-6.4: entering this state swaps the strategy to skittish, so it runs.
- */
 public class FleeingState implements MonsterState {
-
-    public static final double DAMAGE_PENALTY = 0.5;
+    public static final double DAMAGE_DEFICIT = 0.5;
 
     @Override
     public void onEnter(Monster self) {
@@ -19,11 +14,11 @@ public class FleeingState implements MonsterState {
 
     @Override public boolean canAct() { return true; }
 
-    @Override public double damageMultiplier() { return DAMAGE_PENALTY; }
+    @Override public double damageMultiplier() { return DAMAGE_DEFICIT; }
 
     @Override
     public MonsterState next(Monster self, Player player) {
-        if (!self.isAlive()) return new DeadState();
+        if(!self.isAlive()) return new DeadState();
         return this;
     }
 

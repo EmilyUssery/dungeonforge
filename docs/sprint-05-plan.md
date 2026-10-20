@@ -71,13 +71,12 @@ demonstrates Command without it.
 
 | Story | Estimated | Actual hours | High, low, about right? |
 |---|---|---|---|
-| US-5.1 | 4 | 4 | About right |
-| US-5.2 | 3 | 3.5 | Low - snapshot undo took longer than planned |
-| US-5.3 | 2 | 1 | High - the macro was small once commands existed |
-| US-5.4 | 1 | 0.75 | About right (45 minutes) |
+| US-5.1 | 4 | | |
+| US-5.2 | 3 | | |
+| US-5.3 | 2 | | |
+| US-5.4 | 1 | | |
 
-**Points completed:** 10 · **Running velocity:** ~9.3 (Sprints 1, 2, 5: 8, 10, 10)
+**Points completed:** ____ · **Running velocity:** ____
 
 ## Sprint Review — one sentence
 
-Every player action is now an object, so the game can undo a whole turn, loot a room in one word, rewind time with the Hourglass, and replay a recorded session.

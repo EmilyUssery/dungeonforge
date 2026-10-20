@@ -10,7 +10,6 @@ import dungeonforge.core.GameWorld;
 import dungeonforge.core.Player;
 import dungeonforge.events.AchievementSystem;
 import dungeonforge.events.CombatLog;
-import dungeonforge.events.DamageMeter;
 import dungeonforge.events.EventBus;
 import dungeonforge.events.EventType;
 import dungeonforge.events.GameEvent;
@@ -18,33 +17,30 @@ import dungeonforge.events.GameEventListener;
 import dungeonforge.events.QuestTracker;
 import dungeonforge.items.Hourglass;
 import dungeonforge.items.Potion;
-import net.sourceforge.argparse4j.ArgumentParsers;
-import net.sourceforge.argparse4j.inf.ArgumentParser;
-import net.sourceforge.argparse4j.inf.ArgumentParserException;
-import net.sourceforge.argparse4j.inf.Namespace;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
- * WEEK 7 -- the game is INTERACTIVE, and every action is a Command object.
- * WEEK 8 -- the game has MODES (State pattern): the prompt shows the mode, and only that
- * mode's verbs are accepted.
+ * WEEK 7 -- the game loop, after COMMAND.
  *
- * gameLoop() used to be a 126-line if/else chain over verbs. It is now three steps that
- * know nothing about any verb: text -> Command (parser), Command -> effect (execute),
- * Command -> undo stack + replay log (history).
- * Adding a verb never touches this file again.
+ * Compare gameLoop() below with the Week 6 version. It went from about seventy lines of
+ * if/else to four lines, and it no longer knows what any verb means:
+ *
+ *     Command c = parser.parse(line, ctx);
+ *     c.execute();
+ *     history.push(c);
+ *
+ * The loop is now a thing that could drive ANY command set. --script proves it: the same
+ * three lines replay a recorded session with no interactive input at all.
  */
 public final class Main {
 
-    public static final String VERSION = "0.8.0";
+    public static final String VERSION = "0.9.0";
 
     private Main() { }
 
@@ -56,120 +52,95 @@ public final class Main {
                 =========================================""";
     }
 
-    public static void main(String[] args) {
-        ArgumentParser parser = ArgumentParsers.newFor("dungeonforge").build()
-                .defaultHelp(true)
-                .description("A turn-based dungeon crawler built one design pattern at a time.");
-
-        parser.addArgument("-n", "--playerName")
-                .dest("playerName").type(String.class).setDefault("Delver")
-                .help("The name of the player");
-        parser.addArgument("-s", "--seed")
-                .dest("seed").type(Long.class).setDefault(-1L)
-                .help("World seed; omit to use the value in config.json");
-        parser.addArgument("-f", "--script")
-                .dest("script").type(String.class).setDefault("")
-                .help("Replay a recorded session from a file instead of reading the keyboard");
-
-        Namespace res;
-        try {
-            res = parser.parseArgs(args);
-        } catch (ArgumentParserException e) {
-            parser.handleError(e);
-            System.exit(1);
-            return;
+    public static void main(String[] args) throws Exception {
+        String name = "Delver";
+        String script = null;
+        for (String a : args) {
+            if (a.startsWith("--seed="))        RandomSource.getInstance().reseed(Long.parseLong(a.substring(7).trim()));
+            else if (a.startsWith("--script=")) script = a.substring(9).trim();
+            else if (!a.startsWith("--"))       name = a;
         }
-
-        Long seed = res.getLong("seed");
-        if (seed != null && seed >= 0) RandomSource.getInstance().reseed(seed);
 
         System.out.println(banner());
         System.out.println("  version " + VERSION + "   seed " + RandomSource.getInstance().getSeed());
         System.out.println();
 
-        Player player = new Player(res.getString("playerName"));
+        Player player = new Player(name);
         player.addItem(new Potion("Small Healing Draught", 0.3, 20, 22));
-        player.addItem(new Hourglass(2));                       // US-5.4: make the feature reachable
+        player.addItem(new Hourglass(2));                 // US-5.4
+        // WEEK 9 (PROVIDED) -- a plain weapon to start with, so the enchantment exercises in
+        // docs/evidence.md work on turn one instead of waiting on a loot drop.
+        player.addItem(new dungeonforge.items.Weapon("Notched Shortsword", 2.5, 25, 5));
         GameWorld world = new GameWorld(player);
 
         EventBus bus = new EventBus();
         QuestTracker quests = new QuestTracker(bus);
         AchievementSystem achievements = new AchievementSystem(bus);
+        CombatLog log = new CombatLog(200);
         bus.subscribe(quests);
         bus.subscribe(achievements);
-        bus.subscribe(new CombatLog(200));
-        bus.subscribe(new DamageMeter(bus, player, 0.25));
+        bus.subscribe(log);
         bus.subscribe(new ConsolePrinter());
 
         CommandHistory history = new CommandHistory();
         GameContext ctx = new GameContext(world, player, bus, new Combat(bus), history);
-        CommandParser commands = new CommandParser(quests, achievements);
-        BufferedReader in = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
+        CommandParser parser = new CommandParser(quests, achievements);
 
-        ctx.message("Type 'help' for what you can do.");
-        ctx.message("You carry a Chronomancer's Hourglass -- 'use hourglass' rewinds one turn.");
-        ctx.message(ctx.describeCurrentRoom());
+        bus.message("Type 'help' for what you can do. You are carrying an hourglass -- 'use hourglass' rewinds a turn.");
+        parser.parse("look", ctx).execute();
+        ctx.syncState();
 
-        String script = res.getString("script");
-        if (script != null && !script.isBlank()) {
-            try {
-                runScript(commands, ctx, Files.readAllLines(Path.of(script)));
-            } catch (IOException e) {
-                System.err.println("Could not read script " + script + ": " + e.getMessage());
-                System.exit(1);
-            }
+        if (script != null) {
+            runScript(parser, ctx, history, Files.readAllLines(Path.of(script)));
         } else {
-            gameLoop(commands, ctx, in);
+            gameLoop(parser, ctx, history);
         }
 
         System.out.println();
         System.out.println("  " + player.describe());
+        if (!player.isAlive()) System.out.println("  You die in the dark.");
+        System.out.println("  Actions this session: " + history.replayLog().size()
+                + "   |   undo stack depth: " + history.depth());
     }
 
-    /**
-     * US-5.1 AC4: no verb appears here. Parse, execute, remember -- that is the whole loop.
-     * WEEK 8: syncState() once per iteration lets the world pick the mode; the loop no longer
-     * checks whether the player is alive -- GameOverState owns that rule.
-     */
-    private static void gameLoop(CommandParser commands, GameContext ctx, BufferedReader in) {
-        while (ctx.isRunning()) {
-            ctx.syncState();
-            String line = prompt(ctx, in);
+    /** THE ENTIRE GAME LOOP. Four lines of work. */
+    private static void gameLoop(CommandParser parser, GameContext ctx, CommandHistory history) {
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
+
+        ctx.syncState();
+        while (ctx.isRunning() && ctx.getPlayer().isAlive()) {
+            System.out.print("\n["+ctx.getState().name()+" | HP " + ctx.getPlayer().getHp() + "/"
+                    + ctx.getPlayer().getMaxHp() + "] > ");
+            System.out.flush();
+
+            String line;
+            try { line = in.readLine(); } catch (Exception e) { break; }
             if (line == null) break;
-            Command command = commands.parse(line, ctx);
-            command.execute();
-            ctx.getHistory().push(command);
+            System.out.println();
+
+            Command command = parser.parse(line, ctx);   // text  -> object
+            command.execute();                            // object -> effect
+            history.push(command);                        // object -> undo stack + replay log
+            ctx.syncState();
         }
     }
 
     /**
-     * D3 -- replay a recorded session. Exactly the same parse / execute / remember steps as
-     * gameLoop(); only the source of the lines is different. Blank lines and lines starting
-     * with '#' are skipped, and replay stops if the player dies or quits.
+     * WEEK 7 -- the capability nobody asked for.
+     *
+     * Because actions are objects, a recorded session is just a list of strings, and replaying
+     * it uses the SAME three lines as interactive play. Attach one of these to a bug report
+     * and the bug reproduces exactly -- which only works because Week 3 made the world seeded.
      */
-    private static void runScript(CommandParser commands, GameContext ctx, List<String> lines) {
+    private static void runScript(CommandParser parser, GameContext ctx,
+                                  CommandHistory history, List<String> lines) {
         for (String line : lines) {
-            if (line.isBlank() || line.trim().startsWith("#")) continue;
-            if (!ctx.isRunning()) break;
-            ctx.syncState();
-            System.out.println("\n[script " + ctx.getState().name() + "] > " + line);
-            Command command = commands.parse(line, ctx);
+            if (line.isBlank() || line.startsWith("#")) continue;
+            if (!ctx.isRunning() || !ctx.getPlayer().isAlive()) break;
+            System.out.println("\n[script] > " + line);
+            Command command = parser.parse(line, ctx);
             command.execute();
-            ctx.getHistory().push(command);
-        }
-    }
-
-    /** Shows the HP prompt and reads one line; null means input has ended. */
-    private static String prompt(GameContext ctx, BufferedReader in) {
-        Player p = ctx.getPlayer();
-        System.out.print("\n[" + ctx.getState().name() + " | HP " + p.getHp() + "/" + p.getMaxHp() + "] > ");
-        System.out.flush();
-        try {
-            String line = in.readLine();
-            System.out.println();
-            return line;
-        } catch (IOException e) {
-            return null;
+            history.push(command);
         }
     }
 
@@ -181,10 +152,10 @@ public final class Main {
         public void onEvent(GameEvent event) {
             if (event.getType() == EventType.ROOM_CLEARED) return;
             formatter.onEvent(event);
-            var lines = new ArrayList<>(formatter.getLines());
+            var lines = formatter.getLines();
             if (!lines.isEmpty()) {
                 System.out.println("  " + lines.get(lines.size() - 1));
-                formatter.clear();
+                formatter.clear();          // otherwise an event with no text re-prints the last one
             }
         }
     }

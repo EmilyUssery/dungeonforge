@@ -1,45 +1,45 @@
 package dungeonforge.commands;
 
+import dungeonforge.events.GameEvent;
 import dungeonforge.items.Item;
 
-import java.util.List;
-
-/**
- * WEEK 7 (US-5.1) -- pick up one item from the floor or the room's chest.
- * WEEK 8 (US-6.1) -- mode guard deleted; CombatState does not list "take".
- */
+/** WEEK 7 -- COMMAND. Picks an item off the floor or out of a chest. */
 public class TakeCommand extends AbstractCommand {
 
-    public TakeCommand(GameContext ctx, String itemName) {
-        super(ctx, itemName);
-    }
+    public TakeCommand(GameContext ctx, String itemName) { super(ctx, itemName); }
 
     @Override
     protected boolean doExecute() {
-        Item found = removeMatching(room().getFloorItems());
-        if (found == null && room().getChest() != null) {
-            found = removeMatching(room().getChest().getContents());
-        }
+        Item found = takeFromFloor();
+        if (found == null) found = takeFromChest();
+
         if (found == null) {
-            say("There is nothing like that here.");
+            bus().message("There is nothing like that here.");
             return false;
         }
         player().addItem(found);
-        say("You take " + found.getName() + ".");
+        bus().publish(GameEvent.message("You take " + found.getName() + "."));
         return true;
     }
 
-    private Item removeMatching(List<Item> items) {
-        String q = args.toLowerCase();
-        for (Item i : items) {
-            if (i.getName().toLowerCase().contains(q)) {
-                items.remove(i);
-                return i;
-            }
+    private Item takeFromFloor() {
+        for (Item i : room().getFloorItems()) {
+            if (matches(i)) { room().getFloorItems().remove(i); return i; }
         }
         return null;
     }
 
-    @Override
-    public String getDescription() { return args.isEmpty() ? "take" : "take " + args; }
+    private Item takeFromChest() {
+        if (!room().hasChest()) return null;
+        for (Item i : room().getChest().getContents()) {
+            if (matches(i)) { room().getChest().getContents().remove(i); return i; }
+        }
+        return null;
+    }
+
+    private boolean matches(Item i) {
+        return args.isBlank() || i.getName().toLowerCase().contains(args.toLowerCase());
+    }
+
+    @Override public String getDescription() { return ("take " + args).trim(); }
 }

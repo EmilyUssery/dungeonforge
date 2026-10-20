@@ -2,33 +2,33 @@ package dungeonforge.factory;
 
 import dungeonforge.config.RandomSource;
 import dungeonforge.core.Monster;
-import dungeonforge.items.*;
+import dungeonforge.items.Armor;
+import dungeonforge.items.Item;
+import dungeonforge.items.Potion;
+import dungeonforge.items.Treasure;
+import dungeonforge.items.Weapon;
+import dungeonforge.items.FlamingWeapon;
 
-import java.util.List;
-
+/** WEEK 4 -- ABSTRACT FACTORY. Heat, imps, fire-forged steel. */
 public class ForgeThemeKit implements ThemeKit {
 
     private final MonsterFactory factory;
 
     private static final String[] FLAVORS = {
-            "Heat rolls off the walls in slow waves.",
-            "Cinders drift up from cracks in the floor.",
-            "Somewhere below, a hammer strikes. No one is holding it.",
-            "The stone here has been melted and reset, badly."
+        "Heat rolls off the walls in slow waves.",
+        "Cinders drift upward from a grate in the floor.",
+        "Somewhere below, a hammer strikes. Nobody is holding it.",
+        "The stone here has been melted and re-set, badly."
     };
 
-    public ForgeThemeKit(MonsterFactory factory) {
-        this.factory = factory;
-    }
+    public ForgeThemeKit(MonsterFactory factory) { this.factory = factory; }
 
-    @Override
-    public String themeName() { return "forge"; }
+    @Override public String themeName() { return "Forge"; }
 
     @Override
     public Monster createMonster(int depth) {
-        List<MonsterDef> pool = factory.getByTheme("forge", false);
-        MonsterDef chosen = pool.get(RandomSource.getInstance().nextInt(pool.size()));
-        return factory.create(chosen.getId(), depth);
+        String id = RandomSource.getInstance().pick(factory.idsForTheme("forge"));
+        return factory.create(id, depth);
     }
 
     @Override
@@ -39,15 +39,18 @@ public class ForgeThemeKit implements ThemeKit {
     @Override
     public Item createLoot(int depth) {
         switch (RandomSource.getInstance().nextInt(4)) {
-            case 0: return new Weapon("Slag Cleaver", 3.5, 55 + depth * 10, 6 + depth);
-            case 1: return new Armor("Scorched Plate", 4.0, 45 + depth * 10, 4 + depth);
-            case 2: return new Potion("Quench Drops", 0.5, 30, 22 + depth * 3);
-            default: return new Treasure("Ingot of Bright Iron", 1.5, 80 + depth * 18);
+            // WEEK 9 STARTER -- the theme decides which of the seven subclasses to name. A kit
+            // should be able to say "fiery" without a class existing for every combination of
+            // fiery with everything else. Right now it cannot.
+            case 0:  return new FlamingWeapon("Slag Cleaver", 4.0, 55 + depth * 12, 7 + depth);
+            case 1:  return new Armor("Scorched Plate", 6.0, 60 + depth * 10, 4 + depth);
+            case 2:  return new Potion("Quench Draught", 0.4, 30, 22 + depth * 3);
+            default: return new Treasure("Ingot of Bright Iron", 2.0, 80 + depth * 18);
         }
     }
 
     @Override
     public String createRoomFlavor() {
-        return FLAVORS[RandomSource.getInstance().nextInt(FLAVORS.length)];
+        return RandomSource.getInstance().pick(FLAVORS);
     }
 }

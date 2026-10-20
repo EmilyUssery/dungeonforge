@@ -8,11 +8,11 @@ import java.util.Deque;
 import java.util.List;
 
 /**
- * WEEK 7 (US-5.2) -- remembers what the player did.
+ * WEEK 7 -- the undo stack, and the replay log, from the same list of objects.
  *
- * Why it exists: two different memories with two different rules. The UNDO STACK is bounded
- * (config "undoDepth"), because you can only take back so much. The REPLAY LOG is unbounded,
- * because a bug report needs the whole session, not the last 25 turns.
+ * The replay log is the capability nobody asked for. Because every action is an object with a
+ * description, "what did the player actually do?" is answerable -- which is exactly what you
+ * want attached to a bug report. Part D3 has you record a session and replay it.
  */
 public class CommandHistory {
 
@@ -24,16 +24,14 @@ public class CommandHistory {
         this.maxDepth = Math.max(1, GameConfig.getInstance().getInt("undoDepth"));
     }
 
-    /** Log every real command; stack only the ones that actually changed something. */
+    /** Every command that RAN gets logged; only undoable ones join the stack. */
     public void push(Command command) {
-        String text = command.getDescription();
-        if (text != null && !text.isBlank()) replayLog.add(text);
+        replayLog.add(command.getDescription());
         if (!command.isUndoable()) return;
         undoStack.push(command);
         while (undoStack.size() > maxDepth) undoStack.removeLast();
     }
 
-    /** Reverse the most recent undoable command. False (never an exception) if there is none. */
     public boolean undoLast() {
         if (undoStack.isEmpty()) return false;
         undoStack.pop().undo();

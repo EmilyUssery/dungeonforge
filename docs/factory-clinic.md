@@ -1,107 +1,76 @@
-# Factory Clinic
+# The "Which Factory?" Clinic — Lab 4, Part D
 
-## D1 — The experiment: adding a fourth theme
+> Week 3's hard part was refusing a pattern. **This week's hard part is telling three very
+> similar patterns apart.** Students who leave Week 4 unable to distinguish them will misuse
+> all three for the rest of the semester — and Exam 1 will ask.
 
-Added a 4th theme (swamp) to test the Abstract Factory's claim that
-"adding a family is cheap."
+## D1 — The experiment: what does a fourth theme cost? · 8 pts
 
-**git show --stat 26a8863:**
+The Abstract Factory's whole claim is *"adding a new family is cheap and touches nothing
+else."* Claims like that should be measured, not believed.
 
-    docs/evidence.md                                   | 40 ++++++++++++++++
-    .../java/dungeonforge/factory/SwampThemeKit.java   | 53 ++++++++++++++++++++++
-    .../java/dungeonforge/factory/ThemeRegistry.java   |  3 +-
-    src/main/resources/data/config.json                |  2 +-
-    src/main/resources/data/monsters.json              | 10 +++-
-    5 files changed, 104 insertions(+), 4 deletions(-)
+**Add a fourth theme.** Anything you like — Fungal, Drowned, Clockwork. It needs a kit class,
+a couple of monster blueprints in `monsters.json`, and loot.
 
-1. **New files required:** 1 (`SwampThemeKit.java`)
-2. **Modified files:** 3 code-relevant files (`ThemeRegistry.java` -- one
-   added line; `monsters.json` -- one new data block; `config.json` --
-   bumped dungeonDepth for testing). `evidence.md` also changed but is
-   documentation, not code.
-3. **Did GameWorld need to change?** No. `GameWorld.java` does not
-   appear anywhere in this diff. It was written once, against the
-   ThemeKit interface, and never had to be touched again to add a new
-   theme family.
+Before you start, **commit your current work** so `git diff --stat` is meaningful.
 
-**Conclusion:** The Abstract Factory's claim holds up under measurement,
-not just belief. Adding a theme costs exactly 1 new class + 1 registry
-line + 1 data block. Every other class in the system, including the one
-that actually builds the dungeon (GameWorld), was completely unaffected.
+| Question | Your answer                                    |
+|---|------------------------------------------------|
+| How many **new** files did you create? | 1                                              |
+| How many **existing** files did you modify? | 3                                              |
+| Which existing files? | config.json, monsters.json, ThemeRegistry.java |
+| Did `GameWorld.java` change? | no                                             |
+| Did any `RoomPopulator` subclass change? | no                                             |
+| Did `Monster`, `Room`, or `DungeonLevel` change? | no                                             |
 
-## D2 — Classification
+**Paste the output of `git diff --stat`:**
 
-1. **One place in the code turns a monster ID string into a monster.**
-   Pattern: **Simple Factory**
-   Why: There's exactly one method centralizing creation from an id, but
-   no family of related objects and no subclass hierarchy involved --
-   just a single lookup-and-build. This matches MonsterFactory.create().
+```
+ docs/factory-clinic.md                                     | 16 ++++++++--------
+ src/main/java/dungeonforge/factory/ThemeRegistry.java      |  1 +
+ src/main/java/dungeonforge/factory/WinterfellThemeKit.java | 26 +++++++++++++-------------
+ src/main/resources/data/config.json                        |  2 +-
+ src/main/resources/data/monsters.json                      |  6 +++++-
+ 5 files changed, 28 insertions(+), 23 deletions(-)
+```
 
-2. **A boss room, treasure room, and ordinary room each fill themselves
-   differently, but always in the same order: flavor, then monsters,
-   then a chest.**
-   Pattern: **Factory Method**
-   Why: A fixed algorithm (populate()) stays the same across all room
-   types, but one deferred step (createEncounter()) is implemented
-   differently by each subclass. The order is protected; only "how many
-   monsters" varies by type.
+**In two or three sentences: what does that number tell you about the Open/Closed
+Principle — "open for extension, closed for modification"? Was it satisfied, and how do you
+know from evidence rather than from a definition?**
 
-3. **An ice level must contain ice monsters, ice loot, and ice flavor --
-   never a mix.**
-   Pattern: **Abstract Factory**
-   Why: This is a matched *family* of related products (monster + loot +
-   flavor) that must always come from the same theme. That's exactly
-   what ThemeKit guarantees -- a CryptThemeKit can never leak a forge
-   monster.
 
-4. **A weapon can be made flaming, then vampiric, then blessed, in any
-   combination.**
-   Pattern: **None**
-   Why: This is about wrapping an existing object with layered behavior
-   at runtime, not creating families of related objects or deferring
-   which subclass builds something. This is the Decorator pattern
-   (Week 9), not a factory pattern at all.
+> Set `dungeonDepth` to 4 in `config.json` and run it, so you can see your fourth theme.
+> Then set it back to 3 before you open the PR.
 
-5. **Save files must be written as JSON now, and possibly XML later,
-   with matched reader and writer.**
-   Pattern: **Abstract Factory**
-   Why: The reader and writer must always match each other (a JSON
-   reader paired with a JSON writer, never mixed with an XML writer).
-   That's a matched family constraint, same as the ThemeKit rule.
+## D2 — Classification · 12 pts
 
-6. **A method returns a Player object built from the name typed at
-   startup.**
-   Pattern: **None**
-   Why: This is a single, one-off object construction with no varying
-   subclass, no family of related products, and no need to defer the
-   decision to a subclass. It's just a constructor call -- there's
-   nothing here for a factory pattern to solve.
+For each scenario: which of the three applies? Answer **Simple Factory**, **Factory Method**,
+**Abstract Factory**, or **none of them** — and give a one-sentence reason.
 
-## D3 — The distinction: what can Factory Method do that Simple Factory cannot?
+| # | Scenario | Which?           | Why |
+|---|---|------------------|---|
+| 1 | One place in the code turns a monster id string into a `Monster`, so `new Monster` appears once | Simple Factory   | |
+| 2 | A boss room, a treasure room and an ordinary room each fill themselves differently, but always in the same order: prose, then monsters, then a chest | Factory Method   | |
+| 3 | An ice level must contain ice monsters AND ice loot AND ice prose, never a mix | Abstract Factory | |
+| 4 | Week 9: a weapon can be made flaming, then vampiric, then blessed, in any combination | None             | |
+| 5 | Week 12: save files must be written as JSON now and possibly as XML later, with matched reader and writer | Abstract Factory | |
+| 6 | A method returns a `Player` object, built from the name typed at startup | None             | |
 
-Example change request: "Treasure rooms should always have exactly one
-guard monster; standard rooms should have 0 to N monsters."
+> Scenarios 4 and 6 are traps. One is a different pattern entirely; the other is not a pattern
+> at all. Say so if you think so — "none of them" is a correct answer to at least one row.
 
-With Factory Method (RoomPopulator), this is easy: StandardRoomPopulator
-and TreasureRoomPopulator each implement createEncounter(depth)
-independently. Each subclass owns its own "how many" logic, and the
-shared populate() template stays untouched.
+## D3 — The distinction, in your own words · 5 pts
 
-With Simple Factory (MonsterFactory.create(id, depth)), this is awkward.
-A Simple Factory only knows how to build one monster at a time from an
-id -- it has no concept of "room" or "how many." To support this change,
-GameWorld itself would need new if/else branches checking room type
-before calling the factory, which re-couples room logic back into
-GameWorld -- exactly what the factory was supposed to prevent.
+**Simple Factory is not one of the Gang of Four patterns.** Your textbook says so explicitly
+before it teaches Factory Method.
+
+**In three or four sentences: what can Factory Method do that Simple Factory cannot?** Do not
+define either one. Describe a change someone might ask you to make, and explain why it would
+be easy with one and awkward with the other.
+
 
 ## D4 — One honest question
 
-What's still blurry: it's not always obvious to me, before writing any
-code, whether a new requirement calls for Factory Method or Abstract
-Factory. Both involve "let a subclass decide," and the line between
-"one varying step in an algorithm" (Factory Method) and "a whole matched
-family of products" (Abstract Factory) only became clear to me by
-building both this week and comparing them side by side. I suspect I'd
-still hesitate on a genuinely new scenario I haven't seen a pattern-name
-answer key for.
+What is still blurry about these three patterns? A specific confusion is worth more to me
+than a confident summary.
 

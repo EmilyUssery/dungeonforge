@@ -4,29 +4,27 @@ import dungeonforge.core.Monster;
 import dungeonforge.core.Player;
 import dungeonforge.core.Room;
 
+/**
+ * WEEK 5 -- STRATEGY.
+ *
+ * Worth noticing: this strategy reads the ROOM, not just itself. A strategy may look at
+ * anything it is handed. What it must not do is mutate the world -- it returns a decision and
+ * Combat carries it out.
+ */
 public class HealerStrategy implements CombatStrategy {
 
     @Override
     public Action chooseAction(Monster self, Player target, Room room) {
-        Monster mostWounded = null;
-        double lowestFraction = 1.0;
-
-        for (Monster ally : room.getMonsters()) {
-            if (ally == self || !ally.isAlive() || ally.getHp() >= ally.getMaxHp()) {
-                continue;
-            }
-            if (ally.hpFraction() < lowestFraction) {
-                lowestFraction = ally.hpFraction();
-                mostWounded = ally;
-            }
+        Monster worst = null;
+        for (Monster m : room.getMonsters()) {
+            if (m == self || !m.isAlive()) continue;
+            if (worst == null || m.hpFraction() < worst.hpFraction()) worst = m;
         }
-
-        if (mostWounded != null) {
-            return Action.healAlly(mostWounded);
+        if (worst != null && worst.hpFraction() < 0.7) {
+            return new Action(Action.Type.HEAL_ALLY, worst, self.getName() + " chants over " + worst.getName());
         }
-        return Action.attack();
+        return new Action(Action.Type.ATTACK, target, self.getName() + " strikes with a censer");
     }
 
-    @Override
-    public String name() { return "healer"; }
+    @Override public String name() { return "healer"; }
 }

@@ -17,7 +17,7 @@
 |---|---|---|
 | Sprint 3 (Wk 5) | 10 | ____ |
 | Sprint 4 (Wk 6, catch-up) | — | ____ |
-| Sprint 5 (Wk 7) | 10 | 10 |
+| Sprint 5 (Wk 7) | 10 | ____ |
 
 **If Sprint 5 came in under 8, drop US-6.2 and say so in your retro.** The pack screen is the
 most self-contained story here and the sprint still demonstrates State without it.
@@ -66,13 +66,12 @@ most self-contained story here and the sprint still demonstrates State without i
 
 | Story | Estimated | Actual hours | High, low, about right? |
 |---|---|---|---|
-| US-6.1 | 4 | 4 | About right |
-| US-6.2 | 2 | 1.5 | About right |
-| US-6.3 | 3 | 2.5 | About right |
-| US-6.4 | 1 | 0.5 | High - the code already existed from US-6.3 |
+| US-6.1 | 4 | | |
+| US-6.2 | 2 | | |
+| US-6.3 | 3 | | |
+| US-6.4 | 1 | | |
 
-**Points completed:** 10 · **Running velocity:** ~9.5 (Sprints 1, 2, 5, 6: 8, 10, 10, 10)
+**Points completed:** ____ · **Running velocity:** ____
 
 ## Sprint Review — one sentence
 
-The game now knows what mode it is in and only offers the commands that make sense there, and monsters move through a real lifecycle (idle, hunting, enraged, fleeing, dead) that changes how they fight.

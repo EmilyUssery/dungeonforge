@@ -1,10 +1,10 @@
 package dungeonforge.commands;
 
 /**
- * WEEK 7 (US-5.1) -- builds a Command from the rest of the player's input.
+ * WEEK 7 -- what lives in the parser's registry instead of an if-branch.
  *
- * Why it exists: the parser's registry maps a verb to one of these, so adding a verb is one
- * registry line and one class -- never a new branch in an if/else chain.
+ * A functional interface, so a registration is one lambda: the verb "north" maps to
+ * (ctx, args) -> new MoveCommand(ctx, "north"). Week 4's Simple Factory idiom, at one line each.
  */
 @FunctionalInterface
 public interface CommandFactory {

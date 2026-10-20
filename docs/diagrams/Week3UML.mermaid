@@ -1,0 +1,214 @@
+classDiagram
+    direction TB
+
+%% =========================================================
+%% Main application
+%% =========================================================
+
+    class Main {
+        <<final>>
+        +String VERSION
+        -Main()
+        +String banner()$
+        +void main(String[] args)$
+    }
+
+%% =========================================================
+%% Configuration package
+%% =========================================================
+
+    class GameConfig {
+        -GameConfig instance$
+        -Map~String,Object~ settings
+        -GameConfig()
+        +GameConfig getInstance()$
+        -void loadDefaults()
+        -void loadFromClasspath(String resourceName)
+        +int getInt(String key)
+        +double getDouble(String key)
+        +long getSeed()
+        +void resetForTests()$
+    }
+
+    class RandomSource {
+        <<final>>
+        -RandomSource instance$
+        -Random rng
+        -long seed
+        -RandomSource()
+        +RandomSource getInstance()$
+        +int nextInt(int bound)
+        +int between(int lo, int hi)
+        +double nextDouble()
+        +T pick(List~T~ options)
+        +T pick(T[] options)
+        +long getSeed()
+        +void reseed(long newSeed)
+        +void resetForTests()$
+    }
+
+    class Json {
+        <<final>>
+        -String s
+        -int i
+        -Json(String s)
+        +Map~String,Object~ parseObject(String text)$
+        -void ws()
+        -Object value()
+        -Map~String,Object~ object()
+        -List~Object~ array()
+        -String string()
+        -Double number()
+    }
+
+%% =========================================================
+%% Core domain
+%% =========================================================
+
+    class Entity {
+        <<abstract>>
+        #String name
+        #int hp
+        #int maxHp
+        #int attackPower
+        #int defense
+        #Entity(String name, int maxHp, int attackPower, int defense)
+        +String getName()
+        +int getHp()
+        +int getMaxHp()
+        +int getAttackPower()
+        +int getDefense()
+        +boolean isAlive()
+        +void takeDamage(int amount)
+        +void heal(int amount)
+        +String describe()*
+        +String toString()
+    }
+
+    class Player {
+        -int gold
+        -int xp
+        +Player(String name)
+        +int getGold()
+        +int getXp()
+        +void addGold(int g)
+        +void addXp(int x)
+        +double carryCapacity()
+        +String describe()
+    }
+
+    class Monster {
+        -String species
+        -int xpReward
+        +Monster(String species, int baseHp, int baseAttack, int xpReward)
+        +String getSpecies()
+        +int getXpReward()
+        +String describe()
+    }
+
+    class GameWorld {
+        -Player player
+        -List~DungeonLevel~ levels
+        +GameWorld(Player player)
+        -void generate()
+        -Monster spawn(int depth)
+        +Player getPlayer()
+        +List~DungeonLevel~ getLevels()
+        +int totalMonsters()
+    }
+
+    class DungeonLevel {
+        -int depth
+        -List~Room~ rooms
+        +DungeonLevel(int depth)
+        +int getDepth()
+        +List~Room~ getRooms()
+        +void addRoom(Room r)
+    }
+
+    class Room {
+        -String[] FLAVORS$
+        -String id
+        -String flavor
+        -List~Monster~ monsters
+        +Room(String id)
+        +String getId()
+        +String getFlavor()
+        +List~Monster~ getMonsters()
+        +void addMonster(Monster m)
+    }
+
+%% =========================================================
+%% Tests
+%% =========================================================
+
+    class SkeletonTest {
+        <<test>>
+        +void versionIsSet()
+        +void bannerNamesTheProject()
+    }
+
+    class SingletonTest {
+        <<test>>
+        +void freshSingletons()
+        +void configReturnsTheSameInstanceEveryTime()
+        +void configConstructorIsPrivate()
+        +void aPlayerIsBuiltFromConfiguredValues()
+        +void unknownKeysDoNotCrashTheGame()
+        +void randomSourceReturnsTheSameInstanceEveryTime()
+        +void randomSourceConstructorIsPrivate()
+        +void theSameSeedProducesTheSameSeedSequence()
+        +void theDifferentSeedProducesADifferentSequence()
+        +void theSameSeedProducesTheSameDungeon()
+        -int[] tenRolls()
+    }
+
+%% =========================================================
+%% Inheritance
+%% =========================================================
+
+    Entity <|-- Player
+    Entity <|-- Monster
+
+%% =========================================================
+%% Domain composition
+%% =========================================================
+
+    GameWorld *-- "1" Player : owns
+    GameWorld *-- "0..*" DungeonLevel : contains
+    DungeonLevel *-- "0..*" Room : contains
+    Room *-- "0..*" Monster : contains
+
+%% =========================================================
+%% Configuration / service dependencies
+%% =========================================================
+
+    Player ..> GameConfig : reads settings
+    GameWorld ..> GameConfig : reads settings
+    GameWorld ..> RandomSource : generates dungeon
+    Room ..> RandomSource : chooses flavor
+    Monster ..> RandomSource : generates stat variance
+    RandomSource ..> GameConfig : gets initial seed
+    GameConfig ..> Json : parses config.json
+
+%% =========================================================
+%% Application dependencies
+%% =========================================================
+
+    Main ..> RandomSource : reseed / getSeed
+    Main ..> Player : creates
+    Main ..> GameWorld : creates
+    Main ..> DungeonLevel : iterates
+    Main ..> Room : iterates
+    Main ..> Monster : iterates
+
+%% =========================================================
+%% Test dependencies
+%% =========================================================
+
+    SkeletonTest ..> Main : tests
+
+    SingletonTest ..> GameConfig : tests singleton
+    SingletonTest ..> RandomSource : tests singleton / seed
+    SingletonTest ..> Player : tests construction
+    SingletonTest ..> GameWorld : tests reproducibility

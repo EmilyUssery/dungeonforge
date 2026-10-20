@@ -1,41 +1,31 @@
 package dungeonforge.events;
 
+import dungeonforge.config.GameConfig;
 import dungeonforge.core.Player;
 
-/**
- * WEEK 6 -- an Observer that tallies damage and warns once when the player
- * drops below a fraction of max HP.
- */
 public class DamageMeter implements GameEventListener {
-
     private final EventBus bus;
     private final Player player;
-    private final double warnFraction;
-    private int dealt;
-    private int taken;
-    private boolean warned;
+    private final int threshold;
+    private boolean haveWarned;
 
-    public DamageMeter(EventBus bus, Player player, double warnFraction) {
+    public DamageMeter(EventBus bus, Player player, double threshold) {
         this.bus = bus;
         this.player = player;
-        this.warnFraction = warnFraction;
+        this.threshold = (int)Math.round(threshold * GameConfig.getInstance().getDouble("playerStartingHp"));
+        this.haveWarned = false;
     }
 
     @Override
     public void onEvent(GameEvent event) {
-        switch (event.getType()) {
-            case DAMAGE_DEALT -> dealt += event.getInt("amount");
-            case DAMAGE_TAKEN -> {
-                taken += event.getInt("amount");
-                if (!warned && player.getHp() <= player.getMaxHp() * warnFraction) {
-                    warned = true;
-                    bus.message("You are badly wounded -- consider a potion.");
-                }
+        if (haveWarned) return;
+        if (event.getType().equals(EventType.DAMAGE_TAKEN)) {
+            if (player.getHp() <= threshold) {
+                bus.message(String.format(
+                        "~~~ DANGER %s ROBINSON: You're dangerously close to death!!!\n      HP: %d, WARN: %d ~~~",
+                        player.getName(), player.getHp(), threshold));
+                haveWarned = true;
             }
-            default -> { }
         }
     }
-
-    public int getDealt() { return dealt; }
-    public int getTaken() { return taken; }
 }

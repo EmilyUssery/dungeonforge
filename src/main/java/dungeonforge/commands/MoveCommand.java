@@ -2,31 +2,30 @@ package dungeonforge.commands;
 
 import dungeonforge.core.Combat;
 import dungeonforge.core.Room;
+import dungeonforge.events.GameEvent;
 
-/**
- * WEEK 7 (US-5.1) -- walk through an exit.
- * WEEK 8 (US-6.1) -- the "not while enemies stand" guard is DELETED: movement is simply not on
- * CombatState's verb list, so this command is never created during a fight.
- */
+/** WEEK 7 -- COMMAND. */
 public class MoveCommand extends AbstractCommand {
+
+    private final String direction;
 
     public MoveCommand(GameContext ctx, String direction) {
         super(ctx, direction);
+        this.direction = direction.toLowerCase();
     }
 
     @Override
     protected boolean doExecute() {
-        Room next = room().getExit(args);
+        Room next = room().getExit(direction);
         if (next == null) {
-            say("There is no way " + args + ".");
+            bus().message("There is no way " + direction + ".");
             return false;
         }
         ctx.setCurrentRoom(next);
         Combat.restAfterRoom(player());
-        say(ctx.describeCurrentRoom());
+        bus().publish(GameEvent.message("You go " + direction + "."));
         return true;
     }
 
-    @Override
-    public String getDescription() { return args; }
+    @Override public String getDescription() { return direction; }
 }

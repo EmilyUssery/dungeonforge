@@ -1,6 +1,9 @@
 package dungeonforge.core;
 
 import dungeonforge.behavior.Action;
+import dungeonforge.behavior.AggressiveStrategy;
+import dungeonforge.behavior.CombatStrategy;
+import dungeonforge.behavior.SkittishStrategy;
 import dungeonforge.config.GameConfig;
 import dungeonforge.events.EventBus;
 import dungeonforge.events.EventType;
@@ -14,17 +17,10 @@ import java.util.List;
 /**
  * WEEK 5 -- strategies decide HOW a monster fights.
  * WEEK 7 -- one round at a time, because a human is typing.
- * WEEK 8 (US-6.3) -- monsters have a LIFECYCLE, and this class no longer knows its shape.
  *
- * The Week 7 version kept the lifecycle as a String and branched on it in three places
- * (the transitions, "may it act?", "is it enraged?"). Each of those is now ONE question asked
- * of the monster's current MonsterState object:
- *
- *   m.setState(m.getState().next(m, player));   // what comes next? the state decides
- *   if (!m.getState().canAct()) return;          // may it act?      the state answers
- *   base * m.getState().damageMultiplier()       // how hard?        the state answers
- *
- * Adding a new state now means adding a class; this file does not change.
+ * WEEK 8 -- the lifecycle that used to be a String field plus conditionals in three places is
+ * now a MonsterState object. The TODOs that described that old design have been removed: they
+ * outlived the code they were about, which is its own small lesson.
  */
 public class Combat {
 
@@ -35,8 +31,23 @@ public class Combat {
     /** One round of MONSTER actions. */
     public void monsterTurns(Player player, Room room) {
         for (Monster m : livingMonsters(room)) {
-            monsterActs(m, player, room);          // act on the CURRENT state first...
-            transition(m, player);                 // ...then let the state pick what comes next
+            monsterActs(m, player, room);
+
+            MonsterState before = m.getState();
+            CombatStrategy tacticsBefore = m.getStrategy();
+
+            m.setState(before.next(m, player));
+
+            if (m.getStrategy() != tacticsBefore) {
+                bus.publish(GameEvent.of(EventType.STRATEGY_CHANGED,
+                        "name", m.getName(), "from", tacticsBefore.name(), "to", m.getStrategy().name()));
+            }
+            if (m.getState() != before) {
+                bus.publish(GameEvent.of(EventType.MONSTER_SATE_CHANGED,
+                        "name" , m.getName(),
+                        "from", before.label(),
+                        "to", m.getState().label()));
+            }
             if (!player.isAlive()) break;
         }
         if (!player.isAlive()) {
@@ -46,20 +57,7 @@ public class Combat {
         }
     }
 
-    /**
-     * US-6.3: the whole Week 7 updateMonsterState() -- forty lines of nested ifs -- is now one
-     * line. The CURRENT state knows its own outbound arrows and returns its successor.
-     */
-    private void transition(Monster m, Player player) {
-        MonsterState before = m.getState();
-        MonsterState after = before.next(m, player);
-        if (after == before) return;
-        m.setState(after);                         // runs after.onEnter(m), which may swap the strategy
-        bus.publish(GameEvent.of(EventType.STRATEGY_CHANGED,
-                "name", m.getName(), "from", before.label(), "to", after.label()));
-    }
-
-    /** US-6.3: "may this monster act?" is asked of the state, not answered with a conditional. */
+    /** Whether a monster may act is the STATE's answer, not a conditional here. */
     private void monsterActs(Monster m, Player player, Room room) {
         if (!m.getState().canAct()) return;
         if (m.getStrategy() == null) return;
@@ -86,7 +84,6 @@ public class Combat {
             }
             case HEAL_ALLY -> {
                 if (action.getTarget() != null) {
-                    bus.message(action.getFlavor());
                     action.getTarget().heal(5);
                     bus.publish(GameEvent.of(EventType.MONSTER_HEALED,
                             "healer", m.getName(), "target", action.getTarget().getName()));
@@ -96,9 +93,9 @@ public class Combat {
         }
     }
 
-    /** US-6.3: "how hard does it hit?" -- enraged and fleeing states answer differently. */
+    /** Damage scaling is the STATE's answer too. No state name appears in this class. */
     private int damageFrom(Monster m) {
-        return Math.max(1, (int) Math.round(m.getAttackPower() * m.getState().damageMultiplier()));
+        return Math.max(1, (int)Math.round(m.getAttackPower() * m.getState().damageMultiplier()));
     }
 
     public void playerStrikes(Player player, Monster target) {
@@ -106,6 +103,15 @@ public class Combat {
         target.takeDamage(damage);
         bus.publish(GameEvent.of(EventType.DAMAGE_DEALT,
                 "target", target.getName(), "amount", damage));
+
+        // WEEK 9 (PROVIDED) -- ONE line, and it covers every enchantment that will ever exist,
+        // because Combat never learns their names. It asks the player; the player asks the
+        // weapon; the weapon asks whatever it wraps. Nothing here changes in Part C.
+        int drained = player.lifesteal();
+        if (drained > 0) {
+            player.heal(drained);
+            bus.publish(GameEvent.of(EventType.PLAYER_HEALED, "amount", drained));
+        }
 
         if (!target.isAlive()) {
             target.setState(new DeadState());

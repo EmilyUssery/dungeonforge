@@ -27,7 +27,7 @@ Requires **JDK 21**.
 | This week's sprint | `docs/sprint-00-plan.md` *(supplied)* |
 | Next week's sprint | `docs/sprint-01-plan.md` *(supplied)* |
 | Board | GitHub Projects |
-| Retrospectives | `docs/retro` |
+| Retrospectives | `docs/retro/` |
 | Backlog seeding | `bash scripts/seed-backlog.sh` |
 
 > Through Week 5 the Agile artifacts are **supplied**, and your job is to run the sprint and

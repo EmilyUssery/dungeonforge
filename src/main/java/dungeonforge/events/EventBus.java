@@ -4,35 +4,47 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * WEEK 5 (US-3.3) -- the Observer pattern's publisher. A publisher calls publish() and
- * never learns who (if anyone) is subscribed.
+ * WEEK 5 -- OBSERVER (the Subject).
+ *
+ * ============================== THE POINT ==============================
+ * Combat publishes. It has ZERO references to QuestTracker, AchievementSystem or CombatLog,
+ * and it never will. Adding a fourth listener requires no change to any publisher.
+ *
+ * Part D2 asks you to prove that with `git diff --stat` rather than take my word for it.
+ * =======================================================================
+ *
+ * "Define a one-to-many dependency between objects so that when one object changes state,
+ *  all of its dependents are notified and updated automatically."
+ *
+ * Design principle: strive for LOOSELY COUPLED designs between objects that interact. The
+ * only thing the two sides share is GameEvent.
  */
-public class EventBus {
+public final class EventBus {
 
     private final List<GameEventListener> listeners = new ArrayList<>();
 
     public void subscribe(GameEventListener listener) {
-        listeners.add(listener);
+        if (listener != null && !listeners.contains(listener)) {
+            listeners.add(listener);
+        }
     }
 
     public void unsubscribe(GameEventListener listener) {
         listeners.remove(listener);
     }
 
+    /**
+     * Iterating a COPY matters. A listener is allowed to unsubscribe itself while being
+     * notified, and without the copy that would throw ConcurrentModificationException.
+     * This is the bug students hit first, and it is worth hitting once on purpose.
+     */
     public void publish(GameEvent event) {
-        // Iterate a COPY so a listener may unsubscribe itself mid-notification safely.
-        List<GameEventListener> copy = new ArrayList<>(listeners);
-        for (GameEventListener listener : copy) {
+        for (GameEventListener listener : new ArrayList<>(listeners)) {
             listener.onEvent(event);
         }
     }
 
-    /** Shortcut so callers can post plain text without building a GameEvent. */
-    public void message(String text) {
-        publish(GameEvent.message(text));
-    }
+    public void message(String text) { publish(GameEvent.message(text)); }
 
-    public int listenerCount() {
-        return listeners.size();
-    }
+    public int listenerCount() { return listeners.size(); }
 }

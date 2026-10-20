@@ -103,12 +103,6 @@ public final class GameConfig {
         return v instanceof Number ? ((Number) v).doubleValue() : 0;
     }
 
-    /** Needed by RandomSource, which reads the seed as a long. */
-    public long getLong(String key) {
-        Object v = settings.get(key);
-        return v instanceof Number ? ((Number) v).longValue() : 0L;
-    }
-
     public long getSeed() { return (long) getDouble("seed"); }
 
     /**

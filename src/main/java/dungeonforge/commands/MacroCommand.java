@@ -4,25 +4,28 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * WEEK 7 (US-5.3) -- one word, several commands.
+ * WEEK 7 -- MACRO COMMAND.
  *
- * Why it exists: "loot" is just several TakeCommands. Because a MacroCommand IS a Command,
- * the game loop, the history and the hourglass treat it exactly like any other action --
- * and it holds List<Command>, so a macro can even contain another macro.
+ * "loot" is one word that becomes several TakeCommands. Note that this class holds
+ * List<Command> and knows nothing about taking, moving or attacking -- it composes the
+ * interface, not the implementations. Any command can go in a macro, including another macro.
  *
- * undo() runs the children in REVERSE. Each child took its snapshot just before IT ran, so
- * the first child's snapshot is the oldest. Undoing last-to-first means the final restore is
- * the first child's -- the true "before the whole macro" state. Undo them in forward order
- * and a later child's snapshot would overwrite it, leaving items in your pack.
+ * ==================== THE QUESTION TO SIT WITH ====================
+ * undo() runs the children in REVERSE order. Work out why before you read on.
+ *
+ * Because each child captured its before-state at the moment IT ran, and those states are
+ * nested like brackets. Undoing them forwards would restore an early snapshot and then have
+ * a later snapshot overwrite it with the very state you were trying to escape.
+ * ==================================================================
  */
 public class MacroCommand implements Command {
 
-    private final String description;
     private final List<Command> children = new ArrayList<>();
+    private final String description;
 
     public MacroCommand(String description, List<Command> children) {
         this.description = description;
-        this.children.addAll(children);          // a copy: later changes to the caller's list can't reach us
+        this.children.addAll(children);
     }
 
     @Override
@@ -37,16 +40,8 @@ public class MacroCommand implements Command {
         }
     }
 
-    /** Undoable if any child actually did something. */
-    @Override
-    public boolean isUndoable() {
-        for (Command c : children) if (c.isUndoable()) return true;
-        return false;
-    }
-
-    /** The children already let the monsters act; the macro itself adds no extra turn. */
-    @Override public boolean endsTurn()      { return false; }
     @Override public String getDescription() { return description; }
+    @Override public boolean endsTurn()      { return false; }   // children each ended their own
 
     public int size() { return children.size(); }
 }

@@ -1,18 +1,20 @@
 package dungeonforge.events;
 
-/** WEEK 5 (US-3.3) -- every kind of thing Combat (or the game) can announce. */
+/** WEEK 5 -- OBSERVER. The vocabulary the model publishes. */
 public enum EventType {
-    LEVEL_ENTERED,
-    ROOM_CLEARED,
-    MONSTER_DIED,
-    STRATEGY_CHANGED,
-    DELVE_SURVIVED,
-    MESSAGE,
     DAMAGE_DEALT,
     DAMAGE_TAKEN,
+    MONSTER_DIED,
     MONSTER_FLED,
     MONSTER_HEALED,
-    PLAYER_DIED,
+    PLAYER_HEALED,
+    MONSTER_SATE_CHANGED,
+    STRATEGY_CHANGED,
     XP_GAINED,
-    GOLD_GAINED
+    GOLD_GAINED,
+    LEVEL_ENTERED,
+    ROOM_CLEARED,
+    PLAYER_DIED,
+    DELVE_SURVIVED,
+    MESSAGE
 }

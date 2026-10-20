@@ -5,11 +5,6 @@ import dungeonforge.config.GameConfig;
 import dungeonforge.core.Monster;
 import dungeonforge.core.Player;
 
-/**
- * WEEK 8 (US-6.3) -- wounded and angry: hits harder.
- * US-6.4: entering rage swaps the monster's STRATEGY to aggressive -- the state decides WHEN,
- * the strategy decides HOW. Even a healer stops healing once it is enraged.
- */
 public class EnragedState implements MonsterState {
 
     public static final double DAMAGE_BONUS = 1.5;
@@ -25,8 +20,11 @@ public class EnragedState implements MonsterState {
 
     @Override
     public MonsterState next(Monster self, Player player) {
-        if (!self.isAlive()) return new DeadState();
-        if (self.hpFraction() < GameConfig.getInstance().getDouble("fleeThreshold")) return new FleeingState();
+        if(!self.isAlive()) return new DeadState();
+
+        double flee = GameConfig.getInstance().getDouble("fleeThreshold");
+        if (self.hpFraction() < flee) return new FleeingState();
+
         return this;
     }
 

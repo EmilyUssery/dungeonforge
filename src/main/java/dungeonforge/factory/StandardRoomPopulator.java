@@ -7,14 +7,12 @@ import dungeonforge.core.Monster;
 import java.util.ArrayList;
 import java.util.List;
 
+/** WEEK 4 -- FACTORY METHOD. Zero to N ordinary inhabitants, no chest. */
 public class StandardRoomPopulator extends RoomPopulator {
 
-    public StandardRoomPopulator(ThemeKit theme) {
-        super(theme);
-    }
+    public StandardRoomPopulator(ThemeKit theme) { super(theme); }
 
-    @Override
-    public String kind() { return "standard"; }
+    @Override public String kind() { return "standard"; }
 
     @Override
     protected List<Monster> createEncounter(int depth) {

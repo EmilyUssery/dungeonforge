@@ -1,46 +1,38 @@
 package dungeonforge.events;
 
-/**
- * WEEK 5 (US-3.3) -- something the player can make progress toward just by playing, tracked
- * entirely by watching events go by. Nothing that creates one has to report progress to it.
- */
+/** WEEK 5 -- plain data for the QuestTracker. Not a pattern; just a countable goal. */
 public class Quest {
 
+    private final String id;
     private final String description;
     private final EventType trigger;
     private final int required;
     private int progress;
-    private boolean complete;
 
-    public Quest(String description, EventType trigger, int required) {
+    public Quest(String id, String description, EventType trigger, int required) {
+        this.id = id;
         this.description = description;
         this.trigger = trigger;
         this.required = required;
     }
 
-    /**
-     * Advances progress by one if this event matches the quest's trigger.
-     * Returns true only on the single event that completes the quest -- never again after.
-     */
-    public boolean advance(GameEvent event) {
-        if (complete || event.getType() != trigger) {
-            return false;
-        }
-        progress++;
-        if (progress >= required) {
-            complete = true;
-            return true;
-        }
-        return false;
-    }
-
-    public boolean isComplete()    { return complete; }
+    public String getId()          { return id; }
     public String getDescription() { return description; }
-    public int getProgress()       { return progress; }
+    public EventType getTrigger()  { return trigger; }
     public int getRequired()       { return required; }
+    public int getProgress()       { return progress; }
+    public boolean isComplete()    { return progress >= required; }
+
+    /** Returns true on the tick that COMPLETES the quest, so the caller can announce it once. */
+    public boolean advance() {
+        if (isComplete()) return false;
+        progress++;
+        return isComplete();
+    }
 
     @Override
     public String toString() {
-        return (complete ? "[DONE] " : "[" + progress + "/" + required + "] ") + description;
+        return (isComplete() ? "[x] " : "[ ] ") + description
+                + " (" + Math.min(progress, required) + "/" + required + ")";
     }
 }

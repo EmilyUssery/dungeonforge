@@ -5,9 +5,8 @@ import java.util.List;
 
 /**
  * WEEK 1 -- one level of the dungeon.
- *
- * WEEK 4 (US-2.2): each level now knows its theme name (crypt/forge/frost),
- * assigned by the ThemeRegistry.
+ * WEEK 4 -- a level now knows what KIND of place it is. It stores the theme's NAME rather
+ * than the kit itself, because a level is a piece of world state, not a factory.
  */
 public class DungeonLevel {
 
@@ -20,8 +19,8 @@ public class DungeonLevel {
         this.themeName = themeName;
     }
 
-    public int getDepth()          { return depth; }
-    public String getThemeName()   { return themeName; }
-    public List<Room> getRooms()   { return rooms; }
-    public void addRoom(Room r)    { rooms.add(r); }
+    public int getDepth()        { return depth; }
+    public String getThemeName() { return themeName; }
+    public List<Room> getRooms() { return rooms; }
+    public void addRoom(Room r)  { rooms.add(r); }
 }
