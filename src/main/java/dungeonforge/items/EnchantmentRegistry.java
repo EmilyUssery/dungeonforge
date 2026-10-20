@@ -24,6 +24,7 @@ public final class EnchantmentRegistry {
         SPELLS.put("flaming",  FlamingWeapon::new);
         SPELLS.put("frost",    FrostWeapon::new);
         SPELLS.put("vampiric", VampiricWeapon::new);
+        SPELLS.put("keen",     KeenWeapon::new);
     }
 
     private EnchantmentRegistry() { }
