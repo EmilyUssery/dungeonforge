@@ -1,24 +1,19 @@
 package dungeonforge.commands;
 
-import dungeonforge.items.EnchantmentForge;
+import dungeonforge.items.EnchantmentRegistry;
 import dungeonforge.items.Item;
 import dungeonforge.items.Weapon;
 
 /**
- * WEEK 9 STARTER -- PART OF THE PROBLEM.
+ * WEEK 9 -- `enchant <weapon> with <enchantment>`
  *
- * `enchant <weapon> with <enchantment>`
+ * US-7.2 -- written against EnchantmentRegistry. The old "cannot take another X enchantment"
+ * refusal is gone because there is no longer a combination that has no class.
  *
- * This command is honest about what it can do, which is not much. Read the three failure
- * messages below -- each one is a limitation of EnchantmentForge leaking into the player's
- * face. None of them is a rule anyone chose. They are all "we ran out of classes."
- *
- * US-7.2 makes every one of these messages impossible to reach.
+ * No undo() here: TurnSnapshot now remembers the equipped weapon too, so the inherited undo
+ * puts both the pack and the hand back.
  */
 public class EnchantCommand extends AbstractCommand {
-
-    private Weapon before;
-    private Weapon after;
 
     public EnchantCommand(GameContext ctx, String args) { super(ctx, args); }
 
@@ -27,14 +22,15 @@ public class EnchantCommand extends AbstractCommand {
         // "slag cleaver with flaming"  ->  split on the LAST " with "
         int at = args.toLowerCase().lastIndexOf(" with ");
         if (at < 0) {
-            bus().message("Try: enchant <weapon> with <flaming|frost|vampiric>");
+            bus().message("Try: enchant <weapon> with <" + String.join("|", EnchantmentRegistry.known()) + ">");
             return false;
         }
         String target = args.substring(0, at).trim();
         String enchantment = args.substring(at + 6).trim();
 
-        if (!EnchantmentForge.isKnown(enchantment)) {
-            bus().message("No such enchantment: " + enchantment);
+        if (!EnchantmentRegistry.isKnown(enchantment)) {
+            bus().message("No such enchantment: " + enchantment
+                    + ". Known enchantments: " + String.join(", ", EnchantmentRegistry.known()));
             return false;
         }
         Item item = player().findItem(target);
@@ -47,23 +43,17 @@ public class EnchantCommand extends AbstractCommand {
             return false;
         }
 
-        Weapon result = EnchantmentForge.enchant(w, enchantment);
-        if (result == null) {
-            // THE MESSAGE THAT SHOULD NOT EXIST. There is nothing wrong with the request.
-            // There is simply no class for the weapon it would produce.
-            bus().message("That weapon cannot take another " + enchantment + " enchantment.");
-            return false;
-        }
+        // US-7.2 T5 -- the stale-hand fix. NOT the pattern: these two lines would have worked
+        // in the starter too. Enchanting still produces a new outer object, so if the old one
+        // was in the player's hand, the hand has to be pointed at the new one.
+        boolean wasEquipped = (player().getEquippedWeapon() == w);
+        Weapon after = EnchantmentRegistry.apply(enchantment, w);
 
-        before = w;
-        after = result;
         player().removeItem(w);
-        player().addItem(result);
-        bus().message("The " + w.getName() + " is now " + result.describe());
+        player().addItem(after);
+        if (wasEquipped) player().equip(after);
 
-        // KNOWN DEFECT (US-7.2). `result` is a DIFFERENT OBJECT. If the old weapon was the
-        // equipped one, the equipped slot still points at the unenchanted original, and the
-        // player's damage does not change. Equip, enchant, then check `status` and see.
+        bus().message("The " + w.getName() + " is now " + after.describe());
         return true;
     }
 

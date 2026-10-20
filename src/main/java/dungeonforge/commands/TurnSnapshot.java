@@ -5,6 +5,7 @@ import dungeonforge.core.Monster;
 import dungeonforge.core.Player;
 import dungeonforge.core.Room;
 import dungeonforge.items.Item;
+import dungeonforge.items.Weapon;
 import dungeonforge.states.MonsterState;
 
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ public final class TurnSnapshot {
 
     private final int hp, gold, xp;
     private final List<Item> inventory;
+    private final Weapon equipped;          // WEEK 9 (US-7.2) -- the hand, not just the pack
     private final List<Monster> monsters;
     private final List<Item> floorItems;
     private final List<Item> chestContents;
@@ -52,6 +54,7 @@ public final class TurnSnapshot {
         this.gold = player.getGold();
         this.xp = player.getXp();
         this.inventory = new ArrayList<>(player.getInventory());
+        this.equipped = player.getEquippedWeapon();
 
         this.monsters = new ArrayList<>(room.getMonsters());
         this.floorItems = new ArrayList<>(room.getFloorItems());
@@ -75,6 +78,7 @@ public final class TurnSnapshot {
         player.setXp(xp);
         player.getInventory().clear();
         player.getInventory().addAll(inventory);
+        if (equipped == null) player.unequip(); else player.equip(equipped);
 
         room.getMonsters().clear();
         room.getMonsters().addAll(monsters);          // brings back anything that fled
