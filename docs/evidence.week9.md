@@ -26,18 +26,16 @@ line 139, GameContext line 52). Line 71 is just the getter.
 **Now open `GameOverState.java`. It lists four verbs. Try to reach one in play. What happens,
 and why?**
 
-You can't. When I typed `quit`, the game printed "=== YOU leave the dungeon behind === 'quests'
-for your record, or 'quit'." and then exited straight to the summary without showing another
-prompt. The loop condition `ctx.isRunning() && ctx.getPlayer().isAlive()` is false the moment
-you quit or die, so the loop ends before Game Over mode ever reads a command. The four verbs were
-dead code.
+You can't reach them. When I typed `quit`, the game showed the Game Over message and then just
+ended without giving me another prompt. The loop stops as soon as you quit or die, so Game Over
+mode never gets a chance to read a command. Those four verbs were basically dead code.
 
 **One sentence: `running` and `GameOverState` both mean "the game is over". Do they? Say what
 each one actually means.**
 
-No: `GameOverState` (`isTerminal()`) means the *adventure* is over (you died or walked out),
-while `running` means the *session* is over (stop reading input), and you can be in the first
-without the second, like reading your quest log after you die.
+No. `GameOverState` means the adventure is over (you died or left), and `running` means the
+session is over (stop reading input). You can be in the first one without the second, like
+reading your quest log after you die.
 
 ---
 
@@ -122,10 +120,9 @@ quit
 
 **Did your damage change? Explain in one sentence why not.**
 
-No, ATK stayed at 15: `EnchantmentForge.enchant()` built a brand-new `FlamingWeapon` object and
-put it in the pack, but `Player.equippedWeapon` still pointed at the old plain shortsword object.
-That's also why the next `equip shortsword` jumped ATK to 19. It equipped the new object and
-reported "stowing the Notched Shortsword", an object that was no longer even in the inventory.
+No, ATK stayed at 15. Enchanting made a brand new Flaming sword object and put it in my pack, but
+my hand was still holding the old plain sword. That's why ATK jumped to 19 when I equipped the
+shortsword again.
 
 **(b) Paste the refusal from the second `enchant ... with flaming`:**
 
@@ -136,9 +133,8 @@ reported "stowing the Notched Shortsword", an object that was no longer even in 
 **Is there anything wrong with what you asked for? Yes or no — then say what the refusal was
 really reporting.**
 
-No. It was really reporting "there is no class called `FlamingFlamingWeapon`." The line
-`if (w instanceof FlamingWeapon) return null; // no class for double fire` turns a missing
-class into a game rule nobody chose.
+No, there's nothing wrong with asking for double flaming. The message was really saying "there's
+no class called FlamingFlamingWeapon." A missing class turned into a game rule nobody chose.
 
 **(c) Paste the response to `enchant ... with keen`:**
 
@@ -149,10 +145,9 @@ class into a game rule nobody chose.
 **(d) Open `EnchantmentForge.baseDamage()`. In one sentence: why does this method exist at all?
 What would have to be true for it to be unnecessary?**
 
-It exists because each subclass bakes its bonus into `getDamage()`, so to build the next class
-up the forge has to subtract every bonus to recover the original damage; it would be unnecessary
-if the original weapon were kept unchanged inside the enchanted one instead of being thrown away
-and rebuilt.
+It exists because each class adds its bonus right into `getDamage()`, so the forge has to subtract
+the bonuses to get the original damage back. It wouldn't be needed if the original weapon was kept
+inside the enchanted one instead of being replaced.
 
 **(e) Classify all four.** Two of these are the *design*; one is an ordinary *bug* that would
 exist in any design. Which is which, and how do you know?
@@ -248,14 +243,12 @@ void orderChangesHowMuchAVampiricWeaponDrinks() {
 **One paragraph. Why is this correct behaviour rather than a bug?** *(There is one idea to
 state, and everything else follows from it.)*
 
-A decorator can only see what is underneath it. `KeenWeapon` multiplies `wrapped.getDamage()`,
-so if fire is already underneath it (8 + 4 = 12), the fire gets multiplied too (18). If fire goes
-on top of Keen, fire just adds 4 to the already multiplied 12 (16). In the same way,
-`VampiricWeapon` drinks a quarter of `wrapped.getDamage()`. On top of fire it sees 12 and drinks
-3, but under fire it only ever sees the plain 8 and drinks 2, because the fire above it doesn't
-exist from its point of view. That's what wrapping means, not a mistake. It's like a real recipe:
-sharpening a blade and then setting it on fire isn't the same as setting it on fire and then
-sharpening it. The order of the stack is a design decision, so the tests pin down both numbers.
+A decorator can only see what's underneath it. Keen multiplies whatever is under it, so if fire
+is already underneath (8 + 4 = 12), the fire gets multiplied too and you get 18. If fire goes on
+top of Keen, it just adds 4 to 12 and you get 16. Vampiric works the same way. On top of fire it
+sees 12 and drinks 3, but under fire it only sees 8 and drinks 2. So this isn't a bug. The order
+you stack them in actually matters, kind of like sharpening a sword before or after setting it on
+fire.
 
 ---
 
@@ -280,11 +273,9 @@ changes healing. How many lines of `Combat.java` did you edit?** **0**
 **Explain that number** in two or three sentences, using the phrase *programs to the
 interface* and naming which interface.
 
-`Combat` programs to the interface. It calls `player.getAttackPower()` and `player.lifesteal()`,
-and `Player` in turn only talks to the `Weapon` interface (`getDamage()` and `lifesteal()`).
-Every decorator *is a* `Weapon`, so a Vampiric Flaming Keen sword looks exactly like a plain
-sword to `Combat`, and the extra damage and healing come from delegation inside the stack.
-`Combat` never needed to know enchantments exist.
+Combat programs to the interface. It only asks the player for attack power and lifesteal, and
+the player only talks to the `Weapon` interface. Every decorator is a `Weapon`, so an enchanted
+sword looks just like a plain one to Combat, and I didn't have to change any of its code.
 
 ---
 
@@ -317,6 +308,6 @@ Those two lines would have worked with `EnchantmentForge` too.
 
 **One sentence on something Decorator gave you, and one on something it did not.**
 
-Decorator turned 7 combination classes, 34 `instanceof` checks and 13 `return null` paths into
-one class per enchantment, so `keen` cost 1 file and 1 line. It did not fix the stale-hand bug,
-which was an ordinary bug in `EnchantCommand` that I fixed with two lines.
+Decorator turned 7 combination classes, 34 instanceof checks and 13 return-null paths into one
+class per enchantment, so adding Keen only cost 1 file and 1 line. It didn't fix the stale-hand
+bug though. That was a normal bug in EnchantCommand that I fixed with two lines.
