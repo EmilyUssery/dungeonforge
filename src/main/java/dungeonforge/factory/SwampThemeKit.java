@@ -38,7 +38,7 @@ public class SwampThemeKit implements ThemeKit {
     @Override
     public Item createLoot(int depth) {
         switch (RandomSource.getInstance().nextInt(4)) {
-            case 0: return new Weapon("Waterlogged Spear", 3.0, 45 + depth * 9, 5 + depth);
+            case 0: return new BasicWeapon("Waterlogged Spear", 3.0, 45 + depth * 9, 5 + depth);
             case 1: return new Armor("Reed-Woven Hide", 2.5, 40 + depth * 8, 3 + depth);
             case 2: return new Potion("Murky Tonic", 0.5, 26, 19 + depth * 3);
             default: return new Treasure("Sunken Coin Pouch", 1.0, 70 + depth * 16);
