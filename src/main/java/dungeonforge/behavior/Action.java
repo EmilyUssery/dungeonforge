@@ -1,42 +1,32 @@
 package dungeonforge.behavior;
 
-import dungeonforge.core.Monster;
+import dungeonforge.core.Entity;
 
-public final class Action {
+/**
+ * WEEK 5 -- what a STRATEGY returns.
+ *
+ * Note that a strategy returns a DECISION, it does not perform one. Deciding and doing are
+ * separate jobs: the strategy knows what this monster wants to do, and Combat knows how to
+ * make it happen. Keeping those apart is what lets you unit-test a strategy without a
+ * running game.
+ */
+public class Action {
 
     public enum Type { ATTACK, RANGED_ATTACK, FLEE, HEAL_ALLY, WAIT }
 
     private final Type type;
-    private final Monster target;
+    private final Entity target;
     private final String flavor;
 
-    private Action(Type type, Monster target, String flavor) {
+    public Action(Type type, Entity target, String flavor) {
         this.type = type;
         this.target = target;
         this.flavor = flavor;
     }
 
-    public static Action attack() {
-        return new Action(Type.ATTACK, null, "attacks");
-    }
+    public static Action wait(String flavor) { return new Action(Type.WAIT, null, flavor); }
 
-    public static Action rangedAttack() {
-        return new Action(Type.RANGED_ATTACK, null, "strikes from range");
-    }
-
-    public static Action flee() {
-        return new Action(Type.FLEE, null, "flees");
-    }
-
-    public static Action healAlly(Monster ally) {
-        return new Action(Type.HEAL_ALLY, ally, "mends");
-    }
-
-    public static Action wait(String flavor) {
-        return new Action(Type.WAIT, null, flavor);
-    }
-
-    public Type getType()      { return type; }
-    public Monster getTarget() { return target; }
-    public String getFlavor()  { return flavor; }
+    public Type getType()     { return type; }
+    public Entity getTarget() { return target; }
+    public String getFlavor() { return flavor; }
 }

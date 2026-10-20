@@ -26,9 +26,8 @@ public class SwampThemeKit implements ThemeKit {
 
     @Override
     public Monster createMonster(int depth) {
-        List<MonsterDef> pool = factory.getByTheme("swamp", false);
-        MonsterDef chosen = pool.get(RandomSource.getInstance().nextInt(pool.size()));
-        return factory.create(chosen.getId(), depth);
+        String id = RandomSource.getInstance().pick(factory.idsForTheme("swamp"));
+        return factory.create(id, depth);
     }
 
     @Override
