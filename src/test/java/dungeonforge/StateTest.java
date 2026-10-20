@@ -284,4 +284,106 @@ class StateTest {
         int b = new GameWorld(new Player("B")).totalMonsters();
         assertEquals(a, b, "Week 3 determinism");
     }
+
+    // ---------- US-6.7 (carried over from Sprint 6): one answer to "is the game over?" ----------
+
+    /** Strip comments first, so a comment that MENTIONS the flag cannot trip the search. */
+    private static String codeOnly(String source) {
+        return source.replaceAll("(?s)/\\*.*?\\*/", "")
+                     .replaceAll("(?m)//.*$", "");
+    }
+
+    /** The body of one method, found by brace counting from its signature. */
+    private static String methodBody(String source, String signature) {
+        int start = source.indexOf(signature);
+        assertTrue(start >= 0, "could not find " + signature);
+        int open = source.indexOf('{', start);
+        int depth = 0;
+        for (int i = open; i < source.length(); i++) {
+            char ch = source.charAt(i);
+            if (ch == '{') depth++;
+            if (ch == '}' && --depth == 0) return source.substring(open, i + 1);
+        }
+        throw new AssertionError("unbalanced braces after " + signature);
+    }
+
+    @Test
+    void onlyGameOverIsTerminal() {
+        assertTrue(new GameOverState().isTerminal());
+        assertFalse(new ExploringState().isTerminal());
+        assertFalse(new CombatState().isTerminal());
+        assertFalse(new InventoryState().isTerminal());
+    }
+
+    @Test
+    void deathIsTerminalButTheSessionKeepsRunning() {
+        Monster m = monster("Ogre", 200, 50);
+        ctx.getCurrentRoom().getMonsters().add(m);
+        ctx.syncState();
+        m.setState(new HuntingState());
+        player.setHp(1);
+
+        run("attack");
+        ctx.syncState();
+
+        assertFalse(player.isAlive(), "a 50-attack ogre should finish a 1 HP player");
+        assertInstanceOf(GameOverState.class, ctx.getState(), "death must land in Game Over");
+        assertTrue(ctx.getState().isTerminal());
+        assertTrue(ctx.isRunning(), "the adventure is over; the session is not");
+    }
+
+    @Test
+    void aTerminalStateIsSomewhereYouStayEvenWhenHealed() {
+        run("quit");
+        assertInstanceOf(GameOverState.class, ctx.getState());
+
+        player.setHp(player.getMaxHp());
+        ctx.syncState();
+        assertInstanceOf(GameOverState.class, ctx.getState(),
+                "a healed quitter must not be dragged back into Exploring");
+
+        player.setHp(0);
+        ctx.syncState();
+        player.setHp(10);
+        ctx.syncState();
+        assertInstanceOf(GameOverState.class, ctx.getState());
+    }
+
+    @Test
+    void gameOverOffersItsFourVerbsAndNoMovement() {
+        player.setHp(0);
+        ctx.syncState();
+        for (String verb : new String[] { "quests", "history", "status", "quit" }) {
+            assertTrue(ctx.allowedVerbs().contains(verb), verb + " must be reachable after death");
+            assertFalse(parser.parse(verb, ctx) instanceof NoCommand, verb + " must parse in Game Over");
+        }
+        assertFalse(ctx.allowedVerbs().contains("north"));
+        assertInstanceOf(NoCommand.class, parser.parse("north", ctx));
+    }
+
+    @Test
+    void quitEndsTheAdventureAndTheSession() {
+        run("quit");
+        assertTrue(ctx.getState().isTerminal(), "quit must end the adventure");
+        assertFalse(ctx.isRunning(), "quit must end the session");
+    }
+
+    @Test
+    void syncStateNoLongerReadsTheSessionFlag() throws Exception {
+        String source = codeOnly(java.nio.file.Files.readString(
+                java.nio.file.Path.of("src/main/java/dungeonforge/commands/GameContext.java")));
+        String body = methodBody(source, "void syncState()");
+        assertFalse(body.contains("running"), "syncState decides the MODE; it must not read the session flag");
+        assertFalse(body.contains("isRunning"));
+    }
+
+    @Test
+    void mainAsksOneQuestionAboutWhetherToKeepGoing() throws Exception {
+        String main = codeOnly(java.nio.file.Files.readString(
+                java.nio.file.Path.of("src/main/java/dungeonforge/Main.java")));
+        assertTrue(main.contains("while (ctx.isRunning())"), "the loop asks exactly one question");
+        assertTrue(main.contains("if (!ctx.isRunning()) break;"), "so does the script runner");
+        assertFalse(main.contains("isRunning() &&"), "no second clause on the loop");
+        assertFalse(main.contains("isRunning() ||"), "no second clause in the script runner");
+    }
 }
