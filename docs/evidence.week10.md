@@ -14,15 +14,42 @@ grep -rn 'unwrap' src/ | grep -v 'public Weapon unwrap'
 grep -rl 'WEEK 9 STARTER' src/main/java | wc -l
 ```
 
-**Paste the output of the first command.** How many callers does `unwrap()` have? ______
+**Paste the output of the first command.**
 
-**And its javadoc says it is "used by undo". Open `TurnSnapshot.java`. Is it?** ______
+```
+PS> Get-ChildItem -Recurse src -Filter *.java | Select-String 'unwrap' | Where-Object { $_.Line -notmatch 'public Weapon unwrap' }
+(no output)
+```
+
+How many callers does `unwrap()` have? **0.**
+
+**And its javadoc says it is "used by undo". Open `TurnSnapshot.java`. Is it?** **No.** `TurnSnapshot` saves the whole equipped `Weapon` object (`this.equipped = player.getEquippedWeapon()`) and puts it back on restore, so it never needs to peel a layer off anything.
 
 **One sentence on why dead code with a comment vouching for it is worse than dead code.**
 
+Dead code on its own looks deletable, but a comment that says it is load-bearing makes the next person believe it and leave it there, so the lie protects the dead code.
 
-**The second command prints a number.** ______ Open any one of those files and read its header.
+
+**The second command prints a number.** **10**
+
+```
+PS> ($java | Select-String 'WEEK 9 STARTER' -List).Count
+10
+```
+
+Open any one of those files and read its header.
 **Name one sentence in it that is no longer true, and say what made it stop being true.**
+
+`FrostWeapon.java` says *"a weapon that burns. One enchantment."*, but Frost does not burn. The sentence was copied from `FlamingWeapon` and never corrected, and `VampiricWeapon` has the same copied line:
+
+```
+PS> $java | Select-String 'a weapon that burns' -List | Select-Object Path
+...\items\FlamingWeapon.java
+...\items\FrostWeapon.java
+...\items\VampiricWeapon.java
+```
+
+`BasicWeapon` also tells you to "Open FlamingFrostVampiricWeapon", a class US-7.1 deleted when the subclass explosion was replaced by decorators.
 
 
 ### The limit you will find
@@ -55,31 +82,68 @@ mvn -q exec:java -Dexec.args="--report --seed=3"
 mvn -q exec:java -Dexec.args="--report --seed=7"
 ```
 
-**How many tests pass?** ______
+**How many tests pass?** **110** (`Tests run: 110, Failures: 0, Errors: 0, Skipped: 0`)
 
 **Paste all three dungeon reports:**
 
 ```
+  DUNGEON REPORT   (default seed 20260818)
+  ------------------------------------------------------------------
+  LEVEL  THEME         ROOMS  ORPHANS   SPAWN   EXIT
+  ------------------------------------------------------------------
+  1      Crypt             8        0       0    yes
+  2      Forge             8     4 !!       0    yes
+  3      Frost             8        0       0    yes
+  4      Winterfell        8        0       0    n/a
+  ------------------------------------------------------------------
+  orphaned rooms: 4   spawn-camped levels: 0   unreachable exits: 0
 
+  DUNGEON REPORT   (--seed=3)
+  ------------------------------------------------------------------
+  LEVEL  THEME         ROOMS  ORPHANS   SPAWN   EXIT
+  ------------------------------------------------------------------
+  1      Crypt             8        0       0    yes
+  2      Forge             8     4 !!       0    yes
+  3      Frost             8        0    1 !!    yes
+  4      Winterfell        8        0       0    n/a
+  ------------------------------------------------------------------
+  orphaned rooms: 4   spawn-camped levels: 1   unreachable exits: 0
+
+  DUNGEON REPORT   (--seed=7)
+  ------------------------------------------------------------------
+  LEVEL  THEME         ROOMS  ORPHANS   SPAWN   EXIT
+  ------------------------------------------------------------------
+  1      Crypt             8        0       0    yes
+  2      Forge             8     5 !!       0  NO !!
+  3      Frost             8        0       0    yes
+  4      Winterfell        8        0       0    n/a
+  ------------------------------------------------------------------
+  orphaned rooms: 5   spawn-camped levels: 0   unreachable exits: 1
 ```
 
 **How many of the four levels satisfy every invariant, on each seed?**
-default: ______   seed 3: ______   seed 7: ______
+default: **3 of 4**   seed 3: **2 of 4**   seed 7: **3 of 4** (but see below)
 
 **Seed 7 shows a symptom the other two do not.** Look at the EXIT column. What does it mean for
 a player who reaches that level?
+
+On seed 7, level 2's staircase room is one of the orphans, so the player cannot walk to the stairs and can never get down. Levels 3 and 4 pass every invariant, but nobody can reach them, so the game cannot be finished.
 
 
 **Now put the test count and the default-seed result in one sentence.** *(This is the most
 important sentence you will write this week. Two points.)*
 
-> ____________________________________________________________________
+> **All 110 tests pass, yet on the default seed only 3 of the 4 levels satisfy every invariant: level 2 has 4 rooms the entrance cannot reach.**
 
 **The three reports disagree. Why?** *(Look at what decides whether a room gets monsters. Then say
 what that implies about how long a bug like this can survive.)*
 
+The level is built from random rolls: which earlier room the cave links back to, which direction it picks, and whether `populatorFor` gives a treasure, standard or boss populator. So the same skipped step only shows up when the dice land a certain way. The ring's spawn-camp bug only appears when the entrance roll produces a monster (seed 3), and the cave's overwritten exits strand different rooms on each seed. A bug that depends on the seed can survive for a long time, because whoever tests it may simply never roll the seed that shows it.
+
 
 **What does all of this tell you about the test suite you have been building for eight weeks?**
+
+It tests each class's behaviour, but nothing checks what a finished level must look like, so every test is green while two of three builders produce broken levels. Passing tests tell you the code does what the tests ask, not that the game works.
 
 
 ---
@@ -93,26 +157,31 @@ them side by side in two editor windows.
 
 | Step | Corridor | Cave | Ring |
 |---|---|---|---|
-| 1. create the rooms | | | |
+| 1. create the rooms | yes (line 83) | yes (line 115) | yes (line 158) |
 | 2. connect them | own shape | own shape | own shape |
-| 3. entrance flavour | | | |
-| 4. populate — **which index does the loop start at?** | | | |
-| 5. prune unreachable rooms | | | |
+| 3. entrance flavour | yes (line 93) | yes (line 130) | yes (line 171) |
+| 4. populate — **which index does the loop start at?** | `r = 1` (line 96) | `r = 1` (line 133) | **`r = 0`** (line 180) |
+| 5. prune unreachable rooms | yes (line 103) | **missing** | yes (line 187) |
 
-**Which step is genuinely different between the three?** ______
+**Which step is genuinely different between the three?** **Step 2, connecting the rooms.** It is the only one that is about the shape.
 
 **Which differences are NOT about the shape of the level?**
+
+1. The cave builder never calls `pruneUnreachable(level)`, so step 5 is missing.
+2. The ring builder's populate loop starts at `r = 0` instead of `r = 1`, so the entrance gets populated.
 
 
 **For each, say what the consequence is for a player:**
 
 | Drift | What the player experiences |
 |---|---|
-| | |
-| | |
+| Cave skips the reachability step | Rooms you can never walk to. On seed 7 the stairs room is one of them, so you are stuck on level 2 and cannot finish the game. |
+| Ring populates from `r = 0` | You arrive on the level inside an occupied room, and the monsters act before you can do anything (seed 3, level 3). |
 
 **Neither of these is a typo. Both are what happens when one algorithm exists in three copies. In
 one sentence: why did the compiler not help?**
+
+Each copy is perfectly valid Java: leaving out a method call or starting a loop at 0 is not a type error, and nothing in the code says those steps are required or in what order, so the compiler has nothing to check.
 
 
 **A faster way to find this class of bug, which you should keep:**
@@ -122,6 +191,16 @@ grep -n 'for (int r = [01]; r < rooms.size(); r++)' src/main/java/dungeonforge/c
 ```
 
 **Paste the output. What does the pattern of 0s and 1s tell you?**
+
+```
+PS> Select-String -Path $gw -Pattern 'for \(int r = [01]; r < rooms\.size\(\); r\+\+\)'
+GameWorld.java:96:        for (int r = 1; r < rooms.size(); r++) {
+GameWorld.java:120:       for (int r = 1; r < rooms.size(); r++) {
+GameWorld.java:133:       for (int r = 1; r < rooms.size(); r++) {
+GameWorld.java:180:       for (int r = 0; r < rooms.size(); r++) {
+```
+
+Line 120 is the cave's connect loop, not a populate loop, so the three populate loops are 96, 133 and 180. Two start at 1 and one starts at 0. The odd one out is the ring's, and that is the spawn-camp bug. One line of grep found what reading 269 lines hides, because three copies of the same loop should be identical, and the one that differs is the drift.
 
 
 ---
@@ -138,12 +217,22 @@ grep -c 'switch (d % ' src/main/java/dungeonforge/core/GameWorld.java
 
 | | Before | After |
 |---|---|---|
-| `GameWorld.java` lines | | |
-| times room creation is written | | |
-| times entrance flavour is written | | |
-| times the populate loop is written | | |
-| `switch` statements over level shape | | |
-| levels satisfying every invariant (seed 3) | | |
+| `GameWorld.java` lines | 269 | |
+| times room creation is written | 3 | |
+| times entrance flavour is written | 3 | |
+| times the populate loop is written | 3 | |
+| `switch` statements over level shape | 1 | |
+| levels satisfying every invariant (seed 3) | 2 of 4 | |
+
+Commands (PowerShell; `$gw = "src\main\java\dungeonforge\core\GameWorld.java"`):
+
+```
+PS> (Get-Content $gw).Count                                        -> 269
+PS> (Select-String -Path $gw -SimpleMatch 'new Room("L"').Count      -> 3
+PS> (Select-String -Path $gw -SimpleMatch 'createRoomFlavor()').Count -> 3
+PS> (Select-String -Path $gw -SimpleMatch 'populatorFor(').Count     -> 4   (3 calls + 1 method definition)
+PS> (Select-String -Path $gw -SimpleMatch 'switch (d % ').Count      -> 1
+```
 
 *(Fill the After column at the end of the sprint. Nothing in it may be a guess.)*
 
