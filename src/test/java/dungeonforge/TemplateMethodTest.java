@@ -4,6 +4,7 @@ import dungeonforge.config.GameConfig;
 import dungeonforge.config.RandomSource;
 import dungeonforge.core.DungeonLevel;
 import dungeonforge.core.DungeonReport;
+import dungeonforge.core.Room;
 import dungeonforge.factory.MonsterFactory;
 import dungeonforge.factory.ThemeKit;
 import dungeonforge.factory.ThemeRegistry;
@@ -66,7 +67,6 @@ class TemplateMethodTest {
     }
 
     /** A well-written shape wastes nothing, so the invariant finds nothing to prune. */
-    /* TODO: This will only be valid after US-8.3 refactor.
     @Test
     void everyShapeKeepsAllTheRoomsItWasGiven() {
         for (LevelGenerator shape : allShapes()) {
@@ -75,7 +75,6 @@ class TemplateMethodTest {
                     shape.shapeName() + " threw rooms away; enforceReachability is a net, not a bin");
         }
     }
-    */
 
     @Test
     void everyShapeSetsFlavourOnTheEntrance() {
@@ -112,5 +111,31 @@ class TemplateMethodTest {
                 "a step a subclass can call is a step a subclass can call at the wrong time");
         assertFalse(visible.contains("populateRooms"));
         assertFalse(visible.contains("createRooms"));
+    }
+
+    // ================= US-8.3: shapes may only spend four directions =================
+
+    @Test
+    void noShapeUsesTheDescendingDirectionBecauseTheStairsOwnIt() {
+        for (LevelGenerator shape : allShapes()) {
+            DungeonLevel level = shape.generate(1, theme, 8, false);
+            for (Room r : level.getRooms()) {
+                assertFalse(r.getExits().containsKey("down"),
+                        shape.shapeName() + " spent the direction the staircase needs");
+            }
+        }
+    }
+
+    @Test
+    void everyDoorLeadsBothWays() {
+        for (LevelGenerator shape : allShapes()) {
+            DungeonLevel level = shape.generate(1, theme, 8, false);
+            for (Room from : level.getRooms()) {
+                for (var e : from.getExits().entrySet()) {
+                    assertTrue(e.getValue().getExits().containsValue(from),
+                            shape.shapeName() + ": one-way door out of " + from.getId());
+                }
+            }
+        }
     }
 }

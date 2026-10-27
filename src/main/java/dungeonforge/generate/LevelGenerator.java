@@ -31,6 +31,13 @@ import java.util.Set;
  */
 public abstract class LevelGenerator {
 
+    /**
+     * WEEK 10 (US-8.3) -- the directions a shape may spend. "down" is deliberately absent: the
+     * staircase owns it, and GameWorld links it after every level is built. A shape that used
+     * it would have its door silently overwritten by the stairs, or overwrite them.
+     */
+    protected static final String[] DIRECTIONS = { "north", "south", "east", "west" };
+
     /** THE TEMPLATE METHOD. Final, so the order of the steps is not up for negotiation. */
     public final DungeonLevel generate(int depth, ThemeKit theme, int roomCount, boolean isFinalLevel) {
         DungeonLevel level = createRooms(depth, theme, roomCount);
@@ -48,6 +55,33 @@ public abstract class LevelGenerator {
 
     /** For the report and the registry. */
     public abstract String shapeName();
+
+    // ------------------------------------------------------------------ helpers for shapes
+
+    /**
+     * WEEK 10 (US-8.3) -- link a to b through `direction`, and b back to a through the opposite.
+     * REFUSES rather than overwriting: if either side's slot is already taken, nothing changes
+     * and the answer is false. Room exits are a Map keyed by direction, so a plain link() on an
+     * occupied slot silently replaces a door -- which is exactly how the starter's cave
+     * stranded rooms.
+     */
+    protected final boolean tryConnect(Room a, String direction, Room b) {
+        String back = opposite(direction);
+        if (a == b || a.getExit(direction) != null || b.getExit(back) != null) return false;
+        a.link(direction, b);
+        b.link(back, a);
+        return true;
+    }
+
+    private static String opposite(String direction) {
+        switch (direction) {
+            case "north": return "south";
+            case "south": return "north";
+            case "east":  return "west";
+            case "west":  return "east";
+            default: throw new IllegalArgumentException("not a compass direction: " + direction);
+        }
+    }
 
     // ------------------------------------------------------------------ fixed steps (private)
 
