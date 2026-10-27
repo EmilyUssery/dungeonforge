@@ -23,7 +23,7 @@
 | Sprint 5 (Wk 7) | 10 | ____ |
 | Sprint 6 (Wk 8) | 12 | ____ |
 | Sprint 7 (Wk 9) | 11 | ____ |
-| **Sprint 8 (Wk 10)** | **12** | ____ |
+| **Sprint 8 (Wk 10)** | **12** | **12** |
 
 **Three of those Completed columns are empty, and that is now the problem.** Five sprints in,
 there is no measured velocity to plan against, so "capacity ~10" is still a guess from Week 5.
@@ -357,13 +357,13 @@ already have.
 
 | Story | Estimated | Actual hours | High, low, about right? |
 |---|---|---|---|
-| **US-7.5** (carry-over) | **2** | | |
-| US-8.1 | 4 | | |
-| US-8.2 | 3 | | |
-| US-8.3 | 1 | | |
-| US-8.4 | 2 | | |
+| **US-7.5** (carry-over) | **2** | _fill in_ | _fill in_ |
+| US-8.1 | 4 | _fill in_ | _fill in_ |
+| US-8.2 | 3 | _fill in_ | _fill in_ |
+| US-8.3 | 1 | _fill in_ | _fill in_ |
+| US-8.4 | 2 | _fill in_ | _fill in_ |
 
-**Points completed:** ____ · **Running velocity:** ____
+**Points completed:** **12 of 12** (all five stories merged, `mvn test` 137 green) · **Running velocity:** _fill in from the Completed column above_
 
 **Also fill in Sprint 7's row, retrospectively.** `docs/sprint-07-plan.md` has an empty
 calibration table and so do Sprints 3, 5 and 6. Five sprints with no actuals means nobody —
@@ -372,4 +372,17 @@ have to; a rough number you wrote down beats an exact number you never took.
 
 ## Sprint Review — one sentence
 
+> Building a level is now one `final` algorithm in `LevelGenerator`: `GameWorld` went from 269 lines to 87, both seeds report 0 orphans and 0 spawn on every level, and a fourth shape cost one 27-line class plus one registry line, without touching `GameWorld`.
+
 ## Retro — one thing to keep, one thing to change
+
+**Keep:** measuring before coding. The Part 0 numbers (4 orphans, then 4 + 1 spawn on seed 3, then an unreachable exit on seed 7) were what made the deletion of the three builders an obvious decision rather than a refactor for its own sake.
+
+**Change:** create the feature branch only *after* `git switch main` and `git pull`. Twice this sprint I made the branch first, and once a commit landed on `main` and had to be moved.
+
+**Carry-over notes:**
+- *Somebody copied the nearest similar thing.* That one sentence explains both the three weapon classes that called themselves "a weapon that burns" and the ring builder that populated the entrance.
+- The two lines that re-equip a swapped weapon (`wasEquipped = ...; if (wasEquipped) equip(...)`) now exist in `EnchantCommand` and `DisenchantCommand`. A third copy is the moment to move them onto `Player`.
+- `tryConnect` was built before the hooks (US-8.3 before US-8.2) because the cave's `addShortcuts` hook depends on it.
+
+**What the pattern gave and took:** it gave a fourth shape for one class and one line, with both invariants for free; it took away any shape's ability to change the order of the steps.
