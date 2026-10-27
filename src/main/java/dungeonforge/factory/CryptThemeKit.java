@@ -34,9 +34,8 @@ public class CryptThemeKit implements ThemeKit {
     @Override
     public Item createLoot(int depth) {
         switch (RandomSource.getInstance().nextInt(4)) {
-            // WEEK 9 STARTER -- the theme decides which of the seven subclasses to name. A kit
-            // should be able to say "fiery" without a class existing for every combination of
-            // fiery with everything else. Right now it cannot.
+            // WEEK 9 (US-7.1) -- enchanted loot is a BasicWeapon wrapped in decorators, so a kit
+            // can combine any enchantments without a class existing for each combination.
             case 0:  return new VampiricWeapon(new BasicWeapon("Bone Shortsword", 2.0, 40 + depth * 10, 5 + depth));
             case 1:  return new Armor("Grave Shroud", 3.0, 35 + depth * 8, 2 + depth);
             case 2:  return new Potion("Vial of Still Water", 0.4, 25, 18 + depth * 3);

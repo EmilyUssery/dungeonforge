@@ -91,6 +91,8 @@ public class CommandParser {
         register("equip", EquipCommand::new);
         alias("e", "equip");
         register("enchant", EnchantCommand::new);
+        // WEEK 10 (US-7.5) -- no short form: "d" is down and "e" is equip.
+        register("disenchant", DisenchantCommand::new);
         alias("n", "north");
         alias("s", "south");
         alias("d", "down");

@@ -1,9 +1,8 @@
 package dungeonforge.items;
 
 /**
- * WEEK 9 STARTER -- a weapon that burns. One enchantment.
- *
- * PART OF THE PROBLEM. Do not improve this class. Count it.
+ * WEEK 9 (US-7.1) -- DECORATOR: a weapon that drinks. Heals the wielder for a quarter of its damage per hit.
+ * One enchantment, one class; it wraps any Weapon, including another enchantment.
  */
 public class VampiricWeapon extends WeaponDecorator {
 

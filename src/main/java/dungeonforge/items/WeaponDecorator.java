@@ -38,7 +38,9 @@ public abstract class WeaponDecorator implements Weapon {
         return wrapped.getValue() + valueBonus();
     }
 
-    public Weapon unwrap() { return wrapped; }
+    /** WEEK 10 (US-7.5) -- one layer off: hand back exactly the weapon this decorator wraps. */
+    @Override
+    public Weapon peel() { return wrapped; }
 
     @Override
     public String describe() {
