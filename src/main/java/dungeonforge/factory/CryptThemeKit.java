@@ -2,13 +2,7 @@ package dungeonforge.factory;
 
 import dungeonforge.config.RandomSource;
 import dungeonforge.core.Monster;
-import dungeonforge.items.Armor;
-import dungeonforge.items.Item;
-import dungeonforge.items.Potion;
-import dungeonforge.items.Treasure;
-import dungeonforge.items.Weapon;
-import dungeonforge.items.VampiricWeapon;
-import dungeonforge.items.BasicWeapon;
+import dungeonforge.items.*;
 
 /** WEEK 4 -- ABSTRACT FACTORY. Damp stone, the undead, bone charms. */
 public class CryptThemeKit implements ThemeKit {
@@ -40,7 +34,8 @@ public class CryptThemeKit implements ThemeKit {
     @Override
     public Item createLoot(int depth) {
         switch (RandomSource.getInstance().nextInt(4)) {
-            // WEEK 9 (US-7.1) -- the theme wraps a plain weapon instead of naming a subclass.
+            // WEEK 9 (US-7.1) -- enchanted loot is a BasicWeapon wrapped in decorators, so a kit
+            // can combine any enchantments without a class existing for each combination.
             case 0:  return new VampiricWeapon(new BasicWeapon("Bone Shortsword", 2.0, 40 + depth * 10, 5 + depth));
             case 1:  return new Armor("Grave Shroud", 3.0, 35 + depth * 8, 2 + depth);
             case 2:  return new Potion("Vial of Still Water", 0.4, 25, 18 + depth * 3);

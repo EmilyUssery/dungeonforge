@@ -21,7 +21,5 @@ public class GameOverState implements GameState {
 
     @Override public List<String> availableCommands() { return VERBS; }
     @Override public String name() { return "Game Over"; }
-
-    /** US-6.7 -- the only terminal state. There is no transition out of here. */
     @Override public boolean isTerminal() { return true; }
 }

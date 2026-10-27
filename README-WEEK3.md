@@ -61,7 +61,7 @@ try (InputStream in = GameConfig.class.getResourceAsStream("/data/config.json"))
 }
 ```
 
-Note the leading `/` and that the file lives under `src/main/resources/`, which Maven copies
+Note the leading `/` and that the file lives under `src/main/resources`, which Maven copies
 onto the classpath at build time. If `in` comes back `null`, the file is not where you think.
 
 ## Definition of Done
