@@ -62,13 +62,36 @@ enchant shortsword with flaming
 disenchant shortsword
 ```
 
-**What is in your hand now?** ______
+**What is in your hand now?** **Frost Notched Shortsword [dmg 8].** Flaming went on last, so Flaming came off first.
+
+```
+[script] > enchant shortsword with frost
+  The Notched Shortsword is now Frost Notched Shortsword [dmg 8] (2.5kg, 70g
+[script] > enchant shortsword with flaming
+  The Frost Notched Shortsword is now Flaming Frost Notched Shortsword [dmg 12] (2.5kg, 130g
+[script] > equip shortsword
+  You ready the Flaming Frost Notched Shortsword [dmg 12] (2.5kg, 130g.
+[script] > status
+  Delver  HP 80/80  ATK 22 ...  wielding Flaming Frost Notched Shortsword [dmg 12]
+[script] > disenchant shortsword
+  You strip the enchantment away. It is now Frost Notched Shortsword [dmg 8] (2.5kg, 70g
+[script] > status
+  Delver  HP 80/80  ATK 18 ...  wielding Frost Notched Shortsword [dmg 8]
+[script] > disenchant shortsword
+  You strip the enchantment away. It is now Notched Shortsword [dmg 5] (2.5kg, 25g)
+[script] > disenchant shortsword
+  The Notched Shortsword has no enchantment to remove.
+```
+
+ATK dropped from 22 to 18 in the same turn, so the hand followed the weapon down (AC5).
 
 **Now get to a weapon that is Flaming but not Frost, starting from Flaming(Frost(sword)), using
 only `disenchant`.**
 
 **Write down what happened and why.** *(One sentence. It is the same sentence as US-7.4's,
 pointed the other way.)*
+
+It cannot be done: the first disenchant gives Frost, the second gives the bare sword, and "Flaming Notched Shortsword" never appears, because a decorator can only hand back what it wraps, so layers come off in the reverse of the order they went on (last on, first off).
 
 
 ---
@@ -217,12 +240,12 @@ grep -c 'switch (d % ' src/main/java/dungeonforge/core/GameWorld.java
 
 | | Before | After |
 |---|---|---|
-| `GameWorld.java` lines | 269 | |
-| times room creation is written | 3 | |
-| times entrance flavour is written | 3 | |
-| times the populate loop is written | 3 | |
-| `switch` statements over level shape | 1 | |
-| levels satisfying every invariant (seed 3) | 2 of 4 | |
+| `GameWorld.java` lines | 269 | **87** |
+| times room creation is written | 3 | **1** (`LevelGenerator.createRooms`) |
+| times entrance flavour is written | 3 | **1** (`LevelGenerator.markEntrance`) |
+| times the populate loop is written | 3 | **1** (`LevelGenerator.populateRooms`, starts at `r = 1`) |
+| `switch` statements over level shape | 1 | **0** |
+| levels satisfying every invariant (seed 3) | 2 of 4 | **4 of 4** |
 
 Commands (PowerShell; `$gw = "src\main\java\dungeonforge\core\GameWorld.java"`):
 
@@ -234,6 +257,25 @@ PS> (Select-String -Path $gw -SimpleMatch 'populatorFor(').Count     -> 4   (3 c
 PS> (Select-String -Path $gw -SimpleMatch 'switch (d % ').Count      -> 1
 ```
 
+After-column commands (end of sprint, on `feature/us-8.4-spoke`):
+
+```
+PS> (Get-Content $gw).Count                                          -> 87
+PS> (Select-String -Path $gw -SimpleMatch 'new Room("L"').Count       -> 0
+PS> (Select-String -Path $gw -SimpleMatch 'createRoomFlavor()').Count -> 0
+PS> (Select-String -Path $gw -SimpleMatch 'populatorFor(').Count      -> 0
+PS> (Select-String -Path $gw -SimpleMatch 'switch (d % ').Count       -> 0
+PS> Select-String -Path src\main\java\dungeonforge\generate\*.java -SimpleMatch 'new Room("L"'
+generate\LevelGenerator.java:  for (int r = 0; r < roomCount; r++) level.addRoom(new Room("L" + depth + "R" + r));
+PS> Select-String -Path src\main\java\dungeonforge\generate\*.java -Pattern 'for \(int r = [01]; r < rooms\.size\(\); r\+\+\)'
+generate\CaveGenerator.java:22:   (connect loop, not populate)
+generate\LevelGenerator.java:121: (THE populate loop -- r = 1)
+generate\SpokeGenerator.java:19:  (connect loop, not populate)
+PS> mvn -q exec:java "-Dexec.args=--report --seed=3"
+  orphaned rooms: 0   spawn-camped levels: 0   unreachable exits: 0
+  every level satisfies every invariant.
+```
+
 *(Fill the After column at the end of the sprint. Nothing in it may be a guess.)*
 
 ---
@@ -243,12 +285,17 @@ PS> (Select-String -Path $gw -SimpleMatch 'switch (d % ').Count      -> 1
 **Paste `git diff --stat HEAD~1` for the commit that added the fourth shape:**
 
 ```
-
+PS> git diff --stat HEAD~1
+ .../dungeonforge/generate/GeneratorRegistry.java   |  1 +
+ .../java/dungeonforge/generate/SpokeGenerator.java | 27 ++++++++++++++++++++++
+ 2 files changed, 28 insertions(+)
 ```
 
-**New files:** ______  **Modified files:** ______  **Lines added:** ______
+**New files:** **1** (`SpokeGenerator.java`)  **Modified files:** **1** (`GeneratorRegistry.java`)  **Lines added:** **1** in the modified file (28 in total, 27 of them the new class)
 
-**Is `GameWorld.java` in that diff?** ______ **Why not?**
+**Is `GameWorld.java` in that diff?** **No.** **Why not?**
+
+`GameWorld` no longer knows which shapes exist or how a level is built. It asks `GeneratorRegistry.forDepth(d)` for a generator and calls `generate()`. Adding a shape changes the registry's list and nothing that reads from it, the same way adding a theme only touched `ThemeRegistry` in Week 4.
 
 
 ### The other half of the receipt — what the old design would have cost
@@ -256,16 +303,18 @@ PS> (Select-String -Path $gw -SimpleMatch 'switch (d % ').Count      -> 1
 **(a)** To add a spoke shape to the starter, which existing method would you have copied?
 *(Be honest — you would copy the one whose shape is closest, not the one that is correct.)*
 
-______
+**`buildRingLevel`.** A spoke, like a ring, links every room to a fixed partner with no randomness, so it is the closest shape. It is also the newest method in the file, the one you would have just been reading.
 
-**(b)** Roughly how many lines would that have added to `GameWorld.java`? ______
+**(b)** Roughly how many lines would that have added to `GameWorld.java`? **About 40 to 50.** `buildRingLevel` is 37 lines on its own (lines 154–190), plus a new `case` in the switch and a banner comment. The instructor's measured copy added 48 (269 → 317).
 
 **(c)** **The question that matters.** Look at the method you named in (a). Run the `grep` from
 Part 2 on it. Does it have any of the drift you catalogued?
 
-______
+**Yes.** Line 180 is `for (int r = 0; r < rooms.size(); r++)`, the populate loop that starts at 0. It is the spawn-camp bug.
 
 **So what would have happened to the new level's invariants?**
+
+The spoke level would have been populated from the entrance, so whenever the dice put a monster in room 0 the player would spawn into a fight. It would still have passed every test, because no test checked a finished level, and it would have compiled.
 
 
 **(d)** Now check your answer against reality. Your instructor measured it: the fourth shape was
@@ -277,18 +326,22 @@ went from 1 to 2, and **it compiled on the first attempt.**
 
 > Write the conclusion as a sentence with the word *propagate* in it.
 
+> **In the old design, copying a method to add a shape propagates that method's bugs into the new shape, silently and on the first compile. In the new design there is only one copy of the algorithm, so a new shape has no bugs to inherit; it inherits the fixed steps instead.**
+
 ---
 
 ## 5. AFTER — what you did not write
 
 Your fourth shape produces levels with no orphaned rooms and an empty entrance.
 
-**Find the reachability check in `SpokeGenerator.java`.** Where is it? ______
+**Find the reachability check in `SpokeGenerator.java`.** Where is it? **It isn't there.** It is `LevelGenerator.enforceReachability()`, a private method called last by the template.
 
-**Find the entrance guard in `SpokeGenerator.java`.** Where is it? ______
+**Find the entrance guard in `SpokeGenerator.java`.** Where is it? **It isn't there either.** It is `LevelGenerator.populateRooms()`, whose loop starts at `r = 1`, and `markEntrance()`.
 
 **In two or three sentences: explain how a class can satisfy an invariant it does not implement,
 and what had to be true of `generate()` for that to work.**
+
+`SpokeGenerator` only answers "how are the rooms connected?" Every other step, including the entrance guard and the reachability check, runs in the superclass's `generate()` for every shape. That only works because `generate()` is `final` and those steps are `private`: a subclass cannot override the algorithm, skip a step, or call a step itself, so the invariants are properties of the algorithm rather than promises each shape has to keep.
 
 
 ---
@@ -299,9 +352,13 @@ Two of the starter's levels were broken. Both are fixed now.
 
 **Did you write a bug fix? Quote the lines if you did.**
 
+**No.** There is no line anywhere this sprint that adds `pruneUnreachable(level)` to the cave or changes the ring's loop from `r = 0` to `r = 1`.
+
 
 **If you did not, describe what you actually did instead.** *(There is a precise way to say this,
 and it involves the word "deleted".)*
+
+I **deleted** the code that contained the bugs. `buildCorridorLevel`, `buildCaveLevel`, `buildRingLevel`, the `switch` and `pruneUnreachable` are gone (`GameWorld` went from 269 to 87 lines), and the one copy of the algorithm that replaced them was taken from the corridor builder, which was the correct copy. The bugs did not get fixed; the code they lived in stopped existing.
 
 
 ---
@@ -311,9 +368,17 @@ and it involves the word "deleted".)*
 **First, the carry-over.** One sentence on what `disenchant` taught you about Decorator that
 building the decorators did not.
 
+Building decorators showed that wrapping order changes the numbers going in; `disenchant` showed it also fixes the order coming out, so you can only take the last enchantment off, never one from the middle.
+
+Also: three files called Frost and Vampiric "a weapon that burns" because somebody copied the nearest similar thing, which is exactly why the ring builder populated the wrong room.
+
 
 
 
 **One sentence on something Template Method gave you, and one on something it took away.** *(It
 does take something. Head First is clear about it on p. 302 — a subclass cannot change the order
 of the steps, and one day you will want to.)*
+
+**Gave:** a fourth shape cost one 27-line class and one registry line, and it satisfied both invariants without containing either of them.
+
+**Took away:** a shape can no longer change the order of the steps; a level that wanted, say, to populate first and then wall off rooms based on what spawned there cannot be expressed without changing `generate()` for every shape.
