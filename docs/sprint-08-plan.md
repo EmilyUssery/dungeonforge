@@ -357,13 +357,16 @@ already have.
 
 | Story | Estimated | Actual hours | High, low, about right? |
 |---|---|---|---|
-| **US-7.5** (carry-over) | **2** | _fill in_ | _fill in_ |
-| US-8.1 | 4 | _fill in_ | _fill in_ |
-| US-8.2 | 3 | _fill in_ | _fill in_ |
-| US-8.3 | 1 | _fill in_ | _fill in_ |
-| US-8.4 | 2 | _fill in_ | _fill in_ |
+| Part 0 (measuring, before code) | — | ~0.25 (15:26–15:43) | — |
+| **US-7.5** (carry-over) | **2** | ~0.25 (15:43–15:58) | High (took less than estimated) |
+| US-8.1 | 4 | ~0.5 (15:58–16:28, incl. fixing a commit made on `main`) | High |
+| US-8.3 | 1 | ~0.1 (16:28–16:33) | About right |
+| US-8.2 | 3 | ~0.1 (16:33–16:36) | High |
+| US-8.4 | 2 | ~0.3 (16:36–16:53) | High |
 
-**Points completed:** **12 of 12** (all five stories merged, `mvn test` 137 green) · **Running velocity:** _fill in from the Completed column above_
+*Actual hours are taken from this session's timestamps. The whole sprint was done in one sitting on 27 Oct, with AI assistance writing and testing the code while I ran the commands, checked the results and opened the PRs, so these hours are lower than the points would predict and are not a fair basis for planning a sprint done without that help. US-8.3 was done before US-8.2, as in the lecture video, because the cave's hook needs `tryConnect`.*
+
+**Points completed:** **12 of 12** (all five stories merged, `mvn test` 137 green) · **Running velocity:** 12 this sprint; earlier sprints' Completed column not recorded, so no running average yet
 
 **Also fill in Sprint 7's row, retrospectively.** `docs/sprint-07-plan.md` has an empty
 calibration table and so do Sprints 3, 5 and 6. Five sprints with no actuals means nobody —

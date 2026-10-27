@@ -266,15 +266,17 @@ PS> (Select-String -Path $gw -SimpleMatch 'createRoomFlavor()').Count -> 0
 PS> (Select-String -Path $gw -SimpleMatch 'populatorFor(').Count      -> 0
 PS> (Select-String -Path $gw -SimpleMatch 'switch (d % ').Count       -> 0
 PS> Select-String -Path src\main\java\dungeonforge\generate\*.java -SimpleMatch 'new Room("L"'
-generate\LevelGenerator.java:  for (int r = 0; r < roomCount; r++) level.addRoom(new Room("L" + depth + "R" + r));
+src\main\java\dungeonforge\generate\LevelGenerator.java:109:        for (int r = 0; r < roomCount; r++) level.addRoom(new Room("L" + depth + "R" + r));
 PS> Select-String -Path src\main\java\dungeonforge\generate\*.java -Pattern 'for \(int r = [01]; r < rooms\.size\(\); r\+\+\)'
-generate\CaveGenerator.java:22:   (connect loop, not populate)
-generate\LevelGenerator.java:121: (THE populate loop -- r = 1)
-generate\SpokeGenerator.java:19:  (connect loop, not populate)
+src\main\java\dungeonforge\generate\CaveGenerator.java:22:        for (int r = 1; r < rooms.size(); r++) {
+src\main\java\dungeonforge\generate\LevelGenerator.java:121:        for (int r = 1; r < rooms.size(); r++) {
+src\main\java\dungeonforge\generate\SpokeGenerator.java:19:        for (int r = 1; r < rooms.size(); r++) {
 PS> mvn -q exec:java "-Dexec.args=--report --seed=3"
   orphaned rooms: 0   spawn-camped levels: 0   unreachable exits: 0
   every level satisfies every invariant.
 ```
+
+`new Room("L"` now appears in exactly one file, `LevelGenerator.java` (line 109). Of the three loops the second search finds, `CaveGenerator` line 22 and `SpokeGenerator` line 19 are connect loops; `LevelGenerator` line 121 is the only populate loop left in the project, and it starts at `r = 1`.
 
 *(Fill the After column at the end of the sprint. Nothing in it may be a guess.)*
 
@@ -370,7 +372,7 @@ building the decorators did not.
 
 Building decorators showed that wrapping order changes the numbers going in; `disenchant` showed it also fixes the order coming out, so you can only take the last enchantment off, never one from the middle.
 
-Also: three files called Frost and Vampiric "a weapon that burns" because somebody copied the nearest similar thing, which is exactly why the ring builder populated the wrong room.
+Also: the sentence "a weapon that burns" was in three files but only true of one; Frost and Vampiric had it because somebody copied the nearest similar thing, which is exactly why the ring builder populated the wrong room.
 
 
 
