@@ -25,6 +25,12 @@ import java.util.Set;
  * connectRooms(). Everything else (creating the rooms, keeping the entrance safe, populating,
  * enforcing reachability) is fixed here, so a new shape cannot forget any of it.
  *
+ * Three kinds of step, and the language enforces the difference:
+ *   FIXED     -- private: createRooms, markEntrance, populateRooms, enforceReachability.
+ *                A subclass cannot call them at all, so it cannot call them late, twice or never.
+ *   PRIMITIVE -- abstract: connectRooms, shapeName. Every shape must answer.
+ *   HOOK      -- concrete, empty: addShortcuts, decorate. A shape MAY answer.
+ *
  * The starter had three copies of this algorithm in GameWorld, and two had drifted: the cave
  * skipped the reachability step and the ring populated the entrance. Those bugs were not
  * fixed; the copies that contained them were deleted.
@@ -44,6 +50,8 @@ public abstract class LevelGenerator {
         connectRooms(level);
         markEntrance(level, theme);
         populateRooms(level, theme, depth, isFinalLevel);
+        addShortcuts(level);
+        decorate(level, theme);
         enforceReachability(level);
         return level;
     }
@@ -55,6 +63,17 @@ public abstract class LevelGenerator {
 
     /** For the report and the registry. */
     public abstract String shapeName();
+
+    // ------------------------------------------------------------------ hooks (optional)
+
+    /**
+     * WEEK 10 (US-8.2) -- HOOK. Extra doors beyond the shape's own. The empty body is the design:
+     * most shapes have nothing to add, and an abstract method would force them to say so.
+     */
+    protected void addShortcuts(DungeonLevel level) { }
+
+    /** WEEK 10 (US-8.2) -- HOOK. Last-minute theming once the rooms exist. Empty by default. */
+    protected void decorate(DungeonLevel level, ThemeKit theme) { }
 
     // ------------------------------------------------------------------ helpers for shapes
 

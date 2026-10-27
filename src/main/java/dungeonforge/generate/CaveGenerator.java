@@ -11,6 +11,7 @@ import java.util.List;
  * WEEK 10 (US-8.3) -- through tryConnect, so a door is never overwritten. If the random
  * parent has no free door, it keeps trying other parents until one does, so every room gets
  * attached and the template's reachability step has nothing to prune.
+ * WEEK 10 (US-8.2) -- and it overrides one hook, addShortcuts, to make the cave loop back.
  */
 public class CaveGenerator extends LevelGenerator {
 
@@ -32,6 +33,25 @@ public class CaveGenerator extends LevelGenerator {
                     if (tryConnect(rooms.get(p), dir, room)) { attached = true; break; }
                 }
             }
+        }
+    }
+
+    /**
+     * WEEK 10 (US-8.2) -- the only shape that uses a hook. A cave should feel loopy: one or two
+     * extra doors between rooms that are not already neighbours. A single random attempt usually
+     * hits an occupied door, so keep trying until tryConnect succeeds (bounded, so it ends).
+     */
+    @Override
+    protected void addShortcuts(DungeonLevel level) {
+        List<Room> rooms = level.getRooms();
+        if (rooms.size() < 4) return;
+        RandomSource rng = RandomSource.getInstance();
+        int wanted = 1 + rng.nextInt(2);
+        for (int attempt = 0; wanted > 0 && attempt < 200; attempt++) {
+            Room a = rooms.get(rng.nextInt(rooms.size()));
+            Room b = rooms.get(rng.nextInt(rooms.size()));
+            if (a.getExits().containsValue(b)) continue;
+            if (tryConnect(a, DIRECTIONS[rng.nextInt(DIRECTIONS.length)], b)) wanted--;
         }
     }
 
