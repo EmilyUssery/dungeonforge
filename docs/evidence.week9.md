@@ -13,29 +13,15 @@ grep -n 'isRunning\|!running' src/main/java/dungeonforge/Main.java \
                               src/main/java/dungeonforge/commands/GameContext.java
 ```
 
-```
-src/main/java/dungeonforge/Main.java:111:        while (ctx.isRunning() && ctx.getPlayer().isAlive()) {
-src/main/java/dungeonforge/Main.java:139:            if (!ctx.isRunning() || !ctx.getPlayer().isAlive()) break;
-src/main/java/dungeonforge/commands/GameContext.java:52:        if (!player.isAlive() || !running) {
-src/main/java/dungeonforge/commands/GameContext.java:71:    public boolean isRunning()           { return running; }
-```
-
-**Paste the output. How many places spell out the game-over rule?** **3** (Main line 111, Main
-line 139, GameContext line 52). Line 71 is just the getter.
+**Paste the output. How many places spell out the game-over rule?** ______
 
 **Now open `GameOverState.java`. It lists four verbs. Try to reach one in play. What happens,
 and why?**
 
-You can't reach them. When I typed `quit`, the game showed the Game Over message and then just
-ended without giving me another prompt. The loop stops as soon as you quit or die, so Game Over
-mode never gets a chance to read a command. Those four verbs were basically dead code.
 
 **One sentence: `running` and `GameOverState` both mean "the game is over". Do they? Say what
 each one actually means.**
 
-No. `GameOverState` means the adventure is over (you died or left), and `running` means the
-session is over (stop reading input). You can be in the first one without the second, like
-reading your quest log after you die.
 
 ---
 
@@ -49,43 +35,21 @@ grep -c "return null" src/main/java/dungeonforge/items/EnchantmentForge.java
 wc -l src/main/java/dungeonforge/items/EnchantmentForge.java
 ```
 
-```
-EnchantmentForge.java
-FlamingFrostVampiricWeapon.java
-FlamingFrostWeapon.java
-FlamingVampiricWeapon.java
-FlamingWeapon.java
-FrostVampiricWeapon.java
-FrostWeapon.java
-VampiricWeapon.java
-Weapon.java
-
-src/main/java/dungeonforge/items/FlamingWeapon.java
-src/main/java/dungeonforge/items/FlamingFrostVampiricWeapon.java
-src/main/java/dungeonforge/items/FlamingFrostWeapon.java
-src/main/java/dungeonforge/items/FlamingVampiricWeapon.java
-34
-13
-108 src/main/java/dungeonforge/items/EnchantmentForge.java
-```
-
 | | Count |
-|---|---|
-| Weapon/enchantment classes | 8 (`Weapon` + 7 enchanted subclasses; 9 files counting `EnchantmentForge`) |
-| Files containing the fire damage bonus | 5 (4 match `damage + 4`; `EnchantmentForge.baseDamage()` subtracts it back as `- 4`) |
-| `instanceof` tests in `items/` | 34 |
-| `return null` paths in `EnchantmentForge` | 13 |
-| Lines in `EnchantmentForge` | 108 |
+|---|-------|
+| Weapon/enchantment classes | 8     |
+| Files containing the fire damage bonus | 4     |
+| `instanceof` tests in `items/` | 34    |
+| `return null` paths in `EnchantmentForge` | 13    |
+| Lines in `EnchantmentForge` | 108   |
 
 **Open `FlamingFrostVampiricWeapon.java`. Which of its methods contain arithmetic that also
 appears, word for word, in another file?**
+getDamage() is the method and getValue()
 
-`getDamage()` (`damage + 4 + 3` is also in `FlamingFrostWeapon`), `getValue()` (the `+ 60`,
-`+ 45` and `+ 90` bonuses are copied from the single-enchantment classes), and `lifesteal()`
-(`Math.max(1, ... / 4)` is the same formula as in `VampiricWeapon` and `FlamingVampiricWeapon`).
 
 **You want a fourth enchantment, `keen`. Before you look anything up: how many new classes
-would this package need?** **8** (15 total for 4 enchantments, minus the 7 that exist).
+would this package need?** __15____
 
 *(Write it down before reading on.)* For N enchantments the package needs 2^N − 1 classes.
 N = 3 is 7. N = 4 is 15. N = 5 is 31.
@@ -113,51 +77,41 @@ quit
 **(a) Paste the two `status` lines from before and after the first `enchant`:**
 
 ```
-  Delver  HP 80/80  ATK 15  DEF 3  Gold 0  XP 0  Carry 60.0kg  wielding Notched Shortsword [dmg 5] (2.5kg, 25g)
-  The Notched Shortsword is now Flaming Notched Shortsword [dmg 9] (2.5kg, 85g)
-  Delver  HP 80/80  ATK 15  DEF 3  Gold 0  XP 0  Carry 60.0kg  wielding Notched Shortsword [dmg 5] (2.5kg, 25g)
+
 ```
 
 **Did your damage change? Explain in one sentence why not.**
 
-No, ATK stayed at 15. Enchanting made a brand new Flaming sword object and put it in my pack, but
-my hand was still holding the old plain sword. That's why ATK jumped to 19 when I equipped the
-shortsword again.
 
 **(b) Paste the refusal from the second `enchant ... with flaming`:**
 
 ```
-  That weapon cannot take another flaming enchantment.
+
 ```
 
 **Is there anything wrong with what you asked for? Yes or no — then say what the refusal was
 really reporting.**
 
-No, there's nothing wrong with asking for double flaming. The message was really saying "there's
-no class called FlamingFlamingWeapon." A missing class turned into a game rule nobody chose.
 
 **(c) Paste the response to `enchant ... with keen`:**
 
 ```
-  No such enchantment: keen
+
 ```
 
 **(d) Open `EnchantmentForge.baseDamage()`. In one sentence: why does this method exist at all?
 What would have to be true for it to be unnecessary?**
 
-It exists because each class adds its bonus right into `getDamage()`, so the forge has to subtract
-the bonuses to get the original damage back. It wouldn't be needed if the original weapon was kept
-inside the enchanted one instead of being replaced.
 
 **(e) Classify all four.** Two of these are the *design*; one is an ordinary *bug* that would
 exist in any design. Which is which, and how do you know?
 
 | Defect | Design, or ordinary bug? | How you can tell |
 |---|---|---|
-| (a) stale hand | **Ordinary bug** | `EnchantCommand` forgot to re-point the equipped slot. Any design that hands back a new outer object has the same problem (the decorator does too), and two lines in the command fix it with no change to the class design. |
-| (b) no double enchantment | **Design** | It's caused by the missing `FlamingFlamingWeapon` class. One class per combination can never cover repeats. |
-| (c) no fourth enchantment | **Design** | Adding `keen` costs 8 new classes plus new rows in every table in the forge (2^N − 1 growth). |
-| (d) base-value recovery | **Design** | The subtraction tables only exist because bonuses are inherited and overridden instead of layered on top of a kept original. |
+| (a) stale hand |  | |
+| (b) no double enchantment | | |
+| (c) no fourth enchantment | | |
+| (d) base-value recovery | | |
 
 ---
 
@@ -166,47 +120,27 @@ exist in any design. Which is which, and how do you know?
 **Paste `git diff --stat HEAD~1` for the commit that added the fourth enchantment:**
 
 ```
- src/main/java/dungeonforge/items/EnchantmentRegistry.java |  1 +
- src/main/java/dungeonforge/items/KeenWeapon.java          | 11 +++++++++++
- 2 files changed, 12 insertions(+)
+trevorhartman@Noelles-MacBook-Pro dungeonforge % git diff --stat HEAD~1
+ src/main/java/dungeonforge/commands/EnchantCommand.java   |  27 +++++++--------
+ src/main/java/dungeonforge/commands/TurnSnapshot.java     |   4 +++
+ src/main/java/dungeonforge/items/EnchantmentForge.java    | 114 ----------------------------------------------------------------
+ src/main/java/dungeonforge/items/EnchantmentRegistry.java |  33 +++++++++++++++++++
+ src/main/java/dungeonforge/items/KeenWeapon.java          |  25 ++++++++++++++
+ src/test/java/dungeonforge/DecoratorTest.java             | 209 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 6 files changed, 283 insertions(+), 129 deletions(-)
 ```
 
-**New files:** 1  **Modified files:** 1  **Lines added to modified files:** 1
+**New files:** ___1___  **Modified files:** ___1___  **Lines added to modified files:** ___1___
 
 **Now re-run the Part 1 counts on the finished package:**
 
-```bash
-ls src/main/java/dungeonforge/items/ | grep -E 'Weapon|Enchant'
-grep -rln "FIRE_BONUS" src/main/java/dungeonforge/items/
-grep -rho "instanceof" src/main/java/dungeonforge/items/*.java | wc -l
-# comments stripped first (the registry's own comment talks about null):
-sed -e 's://.*$::' src/main/java/dungeonforge/items/EnchantmentRegistry.java | perl -0pe 's:/\*.*?\*/::gs' | grep -c "return null"
-wc -l src/main/java/dungeonforge/items/EnchantmentRegistry.java
-```
-
-```
-BasicWeapon.java
-EnchantmentRegistry.java
-FlamingWeapon.java
-FrostWeapon.java
-KeenWeapon.java
-VampiricWeapon.java
-Weapon.java
-WeaponDecorator.java
-
-src/main/java/dungeonforge/items/FlamingWeapon.java
-0
-0
-52 src/main/java/dungeonforge/items/EnchantmentRegistry.java
-```
-
 | | Before | After |
 |---|---|---|
-| Weapon/enchantment classes | 8 (for 3 enchantments) | 7 (`Weapon`, `BasicWeapon`, `WeaponDecorator` + 4 decorators, for **4** enchantments) |
-| Files containing the fire bonus | 5 | 1 (`FlamingWeapon`, as `FIRE_BONUS = 4`) |
-| `instanceof` in `items/` | 34 | 0 |
-| `return null` paths in the selection class | 13 | 0 |
-| Lines in the selection class | 108 | 52 (about half of that is imports and comments) |
+| Weapon/enchantment classes | 8| 7 |
+| Files containing the fire bonus | 4| 0|
+| `instanceof` in `items/` |34 |0 |
+| `return null` paths in the selection class |13 |0 |
+| Lines in the selection class |108 |33 |
 
 ---
 
@@ -215,40 +149,34 @@ src/main/java/dungeonforge/items/FlamingWeapon.java
 **Paste your two order tests, and their four numbers:**
 
 ```java
-@Test
-void orderChangesTheResultForMultiplyingDecorators() {
-    int keenThenFire = new FlamingWeapon(new KeenWeapon(sword())).getDamage();  // 12 + 4
-    int fireThenKeen = new KeenWeapon(new FlamingWeapon(sword())).getDamage();  // round(12*1.5)
+   @Test
+    void orderChangesTheResultForMultiplyingDecorators() {
+        int keenThenFire = new FlamingWeapon(new KeenWeapon(sword())).getDamage();
+        int fireThenKeen = new KeenWeapon(new FlamingWeapon(sword())).getDamage();
 
-    assertEquals(16, keenThenFire);
-    assertEquals(18, fireThenKeen);
-    assertNotEquals(keenThenFire, fireThenKeen,
-            "if these were equal, order would not matter and this test would be pointless");
-}
+        assertEquals(16, keenThenFire);
+        assertEquals(18, fireThenKeen);
+        assertNotEquals(keenThenFire, fireThenKeen,
+                "If these were equal, order would not matter nad this test would be pointless");
+    }
 
-@Test
-void orderChangesHowMuchAVampiricWeaponDrinks() {
-    assertEquals(3, new VampiricWeapon(new FlamingWeapon(sword())).lifesteal()); // (8+4)/4
-    assertEquals(2, new FlamingWeapon(new VampiricWeapon(sword())).lifesteal()); // 8/4
-}
+    @Test
+    void orderChangesHowMuchAVampiricWeaponDrinks() {
+        assertEquals(3, new VampiricWeapon(new FlamingWeapon(sword())).lifesteal());
+        assertEquals(2, new FlamingWeapon(new VampiricWeapon(sword())).lifesteal());
+    }
 ```
 
 | Stack | Result |
 |---|---|
-| `Flaming(Keen(sword))` | dmg 16 |
-| `Keen(Flaming(sword))` | dmg 18 |
-| `Vampiric(Flaming(sword))` | drain 3 |
-| `Flaming(Vampiric(sword))` | drain 2 |
+| `Flaming(Keen(sword))` | dmg ___16___ |
+| `Keen(Flaming(sword))` | dmg ___18___ |
+| `Vampiric(Flaming(sword))` | drain ___3___ |
+| `Flaming(Vampiric(sword))` | drain ___2___ |
 
 **One paragraph. Why is this correct behaviour rather than a bug?** *(There is one idea to
 state, and everything else follows from it.)*
 
-A decorator can only see what's underneath it. Keen multiplies whatever is under it, so if fire
-is already underneath (8 + 4 = 12), the fire gets multiplied too and you get 18. If fire goes on
-top of Keen, it just adds 4 to 12 and you get 16. Vampiric works the same way. On top of fire it
-sees 12 and drinks 3, but under fire it only sees 8 and drinks 2. So this isn't a bug. The order
-you stack them in actually matters, kind of like sharpening a sword before or after setting it on
-fire.
 
 ---
 
@@ -258,24 +186,15 @@ fire.
 git diff --stat main -- src/main/java/dungeonforge/core/
 ```
 
-(Run against the starter commit, since `main` now includes the sprint.)
-
-```
-(no output)
-```
-
-**Which files in `core/` changed during this entire sprint?** **None.**
+**Which files in `core/` changed during this entire sprint?** __25q____
 
 **`Combat.playerStrikes()` computes the damage the player deals and the hit points they drink
 back. You added four enchantments this week, two of which change damage and one of which
-changes healing. How many lines of `Combat.java` did you edit?** **0**
+changes healing. How many lines of `Combat.java` did you edit?** __0____
 
 **Explain that number** in two or three sentences, using the phrase *programs to the
 interface* and naming which interface.
 
-Combat programs to the interface. It only asks the player for attack power and lifesteal, and
-the player only talks to the `Weapon` interface. Every decorator is a `Weapon`, so an enchanted
-sword looks just like a plain one to Combat, and I didn't have to change any of its code.
 
 ---
 
@@ -283,31 +202,17 @@ sword looks just like a plain one to Combat, and I didn't have to change any of 
 
 **Of the four defects in Part 2, which one did Decorator fix, and which one did you fix?**
 
-Decorator fixed the design ones: (b) double enchantment, (c) the fourth enchantment (now one class
-plus one line), and (d) base-value recovery (the original weapon is kept inside the stack, so
-nothing has to be subtracted). I fixed (a), the stale hand, myself in `EnchantCommand`.
 
 **Quote the lines that fixed the one Decorator did not.**
 
 ```java
-boolean wasEquipped = (player().getEquippedWeapon() == w);
-Weapon after = EnchantmentRegistry.apply(enchantment, w);
-// ...
-if (wasEquipped) player().equip(after);
+
 ```
 
-(plus the `equipped` field in `TurnSnapshot`, so `undo` puts the old weapon back in your hand)
-
-**Would those lines have worked before the refactor?** **Yes.** Enchanting still returns a new
-outer object (the decorator wrapped around the old one), so the hand still has to be re-pointed.
-Those two lines would have worked with `EnchantmentForge` too.
+**Would those lines have worked before the refactor?** ______
 
 ---
 
 ## 7. Retro line
 
 **One sentence on something Decorator gave you, and one on something it did not.**
-
-Decorator turned 7 combination classes, 34 instanceof checks and 13 return-null paths into one
-class per enchantment, so adding Keen only cost 1 file and 1 line. It didn't fix the stale-hand
-bug though. That was a normal bug in EnchantCommand that I fixed with two lines.

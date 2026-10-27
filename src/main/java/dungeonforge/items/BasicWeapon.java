@@ -2,8 +2,15 @@ package dungeonforge.items;
 
 /**
  * WEEK 4 -- a weapon.
- * WEEK 9 (US-7.1) -- renamed from Weapon. The CONCRETE COMPONENT of the Decorator pattern:
- * the plain weapon at the core of every enchantment stack. Body unchanged.
+ * WEEK 9 STARTER -- and the root of this week's problem.
+ *
+ * Nothing is wrong with THIS class. The problem is the seven classes that extend it.
+ * Open FlamingFrostVampiricWeapon and count how many times the fire arithmetic appears in
+ * this package. Then work out what a FOURTH enchantment would cost.
+ *
+ * Two changes were needed to make the subclasses below possible, and both are dominoes:
+ * the fields went from private to protected, and getDamage()/getValue()/describe() stopped
+ * being things only this class decides.
  */
 public class BasicWeapon implements Weapon {
 

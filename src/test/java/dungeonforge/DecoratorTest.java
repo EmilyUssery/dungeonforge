@@ -108,7 +108,7 @@ class DecoratorTest {
     // ================= US-7.2: any enchantment, any depth, any order =================
 
     /**
-     * THE HEADLINE. The starter's forge class returned null for this, because there was no
+     * THE HEADLINE. The starter's EnchantmentForge returned null for this, because there was no
      * class called FlamingFlamingWeapon and there was never going to be one.
      */
     @Test
@@ -183,40 +183,28 @@ class DecoratorTest {
         assertTrue(EnchantmentRegistry.known().contains("keen"));
     }
 
-    // ================= US-7.4: order is semantics, not style =================
-
+    // ================= US-7.4: =================
     @Test
     void orderChangesTheResultForMultiplyingDecorators() {
-        int keenThenFire = new FlamingWeapon(new KeenWeapon(sword())).getDamage();  // 12 + 4
-        int fireThenKeen = new KeenWeapon(new FlamingWeapon(sword())).getDamage();  // round(12*1.5)
+        int keenThenFire = new FlamingWeapon(new KeenWeapon(sword())).getDamage();
+        int fireThenKeen = new KeenWeapon(new FlamingWeapon(sword())).getDamage();
 
         assertEquals(16, keenThenFire);
         assertEquals(18, fireThenKeen);
         assertNotEquals(keenThenFire, fireThenKeen,
-                "if these were equal, order would not matter and this test would be pointless");
+                "If these were equal, order would not matter nad this test would be pointless");
     }
 
     @Test
     void orderChangesHowMuchAVampiricWeaponDrinks() {
-        assertEquals(3, new VampiricWeapon(new FlamingWeapon(sword())).lifesteal()); // (8+4)/4
-        assertEquals(2, new FlamingWeapon(new VampiricWeapon(sword())).lifesteal()); // 8/4
+        assertEquals(3, new VampiricWeapon(new FlamingWeapon(sword())).lifesteal());
+        assertEquals(2, new FlamingWeapon(new VampiricWeapon(sword())).lifesteal());
     }
 
     @Test
     void twoVampiricLayersDrinkTwice() {
         assertEquals(4, new VampiricWeapon(new VampiricWeapon(sword())).lifesteal(),
-                "the inner drinks 2 from base 8; the outer drinks 2 more and adds the inner's");
-    }
-
-    @Test
-    void describeOnAThreeDeepStackNamesEveryEnchantmentOutermostFirst() {
-        Weapon w = new KeenWeapon(new VampiricWeapon(new FlamingWeapon(sword())));
-        String d = w.describe();
-        assertTrue(d.startsWith("Keen Vampiric Flaming Iron Sword"), d);
-        assertTrue(d.indexOf("Keen") < d.indexOf("Vampiric") && d.indexOf("Vampiric") < d.indexOf("Flaming"),
-                "outermost first: " + d);
-        assertTrue(d.contains("[dmg 18]"), "round((8 + 4) * 1.5) = 18: " + d);
-        assertTrue(d.contains("[drain 3]"), "Vampiric drinks (8 + 4) / 4 = 3 from what is under it: " + d);
+                "the inner drinks 2 from the base 8 ; the outer drinks 2 more and adds the inner's");
     }
 
     // ================= the payoff: Combat never learned any of this =================

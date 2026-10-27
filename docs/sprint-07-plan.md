@@ -17,7 +17,7 @@
 | Sprint 3 (Wk 5) | 10 | ____ |
 | Sprint 5 (Wk 7) | 10 | ____ |
 | Sprint 6 (Wk 8) | 12 | ____ |
-| **Sprint 7 (Wk 9)** | **11** | **11** |
+| **Sprint 7 (Wk 9)** | **11** | ____ |
 
 ## Committed stories
 
@@ -116,22 +116,22 @@ So `running` stays. It just stops being consulted by anything deciding a *mode*.
 
 ### Sub-tasks
 
-- [x] **T1 [AC1]** Add `default boolean isTerminal() { return false; }` to `GameState`.
+- [ ] **T1 [AC1]** Add `default boolean isTerminal() { return false; }` to `GameState`.
       **Do this first** — the tests for this story will not compile until it exists.
-- [x] **T2 [AC1]** Override it to `true` in `GameOverState`, and only there.
-- [x] **T3 [AC5]** In `syncState()`, make `if (state.isTerminal()) return;` the **first** line.
+- [ ] **T2 [AC1]** Override it to `true` in `GameOverState`, and only there.
+- [ ] **T3 [AC5]** In `syncState()`, make `if (state.isTerminal()) return;` the **first** line.
       Order matters: put it after the death check and a healed quitter gets dragged back into
       Exploring.
-- [x] **T4 [AC2, AC4]** Reduce the death branch to `if (!player.isAlive())` and **delete the
+- [ ] **T4 [AC2, AC4]** Reduce the death branch to `if (!player.isAlive())` and **delete the
       `|| !running`**.
-- [x] **T5 [AC7]** Have `quit` do both jobs explicitly: `transitionTo(new GameOverState())` and
+- [ ] **T5 [AC7]** Have `quit` do both jobs explicitly: `transitionTo(new GameOverState())` and
       `stop()`. Two facts, one action — which is not the same as conflating them.
-- [x] **T6 [AC3]** Collapse `Main`'s loop condition to `while (ctx.isRunning())` and the script
+- [ ] **T6 [AC3]** Collapse `Main`'s loop condition to `while (ctx.isRunning())` and the script
       runner's to `if (!ctx.isRunning()) break;`.
-- [x] **T7 [AC4, AC5, AC6, AC7]** Four tests, one per behaviour. Put them in `StateTest`.
-- [x] **T8 [AC2, AC3]** Two **absence** assertions that read the source. **Strip comments before
+- [ ] **T7 [AC4, AC5, AC6, AC7]** Four tests, one per behaviour. Put them in `StateTest`.
+- [ ] **T8 [AC2, AC3]** Two **absence** assertions that read the source. **Strip comments before
       you search** — see the note below; this one has teeth.
-- [x] **T9 [AC8]** `mvn test`. Commit on `feature/us-6.7-one-game-over-rule`.
+- [ ] **T9 [AC8]** `mvn test`. Commit on `feature/us-6.7-one-game-over-rule`.
 
 > **T8, and a mistake worth inheriting rather than making yourself.**
 >
@@ -171,11 +171,11 @@ called `FlamingFrostWeapon`.
 
 ### Sub-tasks
 
-- [x] **T1 [AC1]** Rename the class in `Weapon.java` to `BasicWeapon` and put it in
+- [ ] **T1 [AC1]** Rename the class in `Weapon.java` to `BasicWeapon` and put it in
       `BasicWeapon.java`. Do not change its body.
-- [x] **T2 [AC1]** Write the new `Weapon.java` as an interface: `extends Item`, declaring
+- [ ] **T2 [AC1]** Write the new `Weapon.java` as an interface: `extends Item`, declaring
       `int getDamage()` and `default int lifesteal() { return 0; }`.
-- [x] **T3 [AC1, AC7]** Run `mvn compile`. **Let the compiler find the call sites** — do not grep
+- [ ] **T3 [AC1, AC7]** Run `mvn compile`. **Let the compiler find the call sites** — do not grep
       for them first.
       <br><br>
       It reports errors in **five files once the doomed classes are gone**: the four `ThemeKit`
@@ -187,22 +187,22 @@ called `FlamingFrostWeapon`.
       `EnchantmentForge`, so it cannot compile until US-7.2 replaces it with the registry. That
       is the honest shape of a refactor this size: treat US-7.1 and US-7.2 as one sitting with a
       single green checkpoint at the end.
-- [x] **T4 [AC2]** Write `WeaponDecorator`: abstract, `implements Weapon`, one
+- [ ] **T4 [AC2]** Write `WeaponDecorator`: abstract, `implements Weapon`, one
       `protected final Weapon wrapped` assigned in a constructor that rejects null. Delegate
       `getName`, `getWeight`, `getValue`, `getDamage`, `lifesteal` to `wrapped`.
-- [x] **T5 [AC2]** Give `WeaponDecorator` two abstract hooks — `prefix()` and `valueBonus()` —
+- [ ] **T5 [AC2]** Give `WeaponDecorator` two abstract hooks — `prefix()` and `valueBonus()` —
       and one `describe()` built from them, so no concrete decorator writes `describe()`.
-- [x] **T6 [AC3, AC5]** Write `FlamingWeapon` and `FrostWeapon`. Each overrides **only**
+- [ ] **T6 [AC3, AC5]** Write `FlamingWeapon` and `FrostWeapon`. Each overrides **only**
       `getDamage()`, plus the two hooks. If either is longer than about eight lines, you are
       overriding something you should be delegating.
-- [x] **T7 [AC3]** Write `VampiricWeapon`. It overrides **only** `lifesteal()`, and it drinks
+- [ ] **T7 [AC3]** Write `VampiricWeapon`. It overrides **only** `lifesteal()`, and it drinks
       from `wrapped.getDamage()` — *not* `getDamage()`. Get this right now and US-7.4 is twenty
       minutes.
-- [x] **T8 [AC4]** Delete `FlamingFrostWeapon`, `FlamingVampiricWeapon`, `FrostVampiricWeapon`,
+- [ ] **T8 [AC4]** Delete `FlamingFrostWeapon`, `FlamingVampiricWeapon`, `FrostVampiricWeapon`,
       `FlamingFrostVampiricWeapon`. **This is the deliverable.**
-- [x] **T9 [AC6]** Change each of the four `ThemeKit` loot lines to wrap a `BasicWeapon` instead
+- [ ] **T9 [AC6]** Change each of the four `ThemeKit` loot lines to wrap a `BasicWeapon` instead
       of naming a combination class. Fix `Main`'s starting weapon the same way.
-- [x] **T10 [AC7]** `mvn test`. Commit on `feature/us-7.1-decorator`.
+- [ ] **T10 [AC7]** `mvn test`. Commit on `feature/us-7.1-decorator`.
 
 ---
 
@@ -226,23 +226,23 @@ somebody's class hierarchy.
 
 ### Sub-tasks
 
-- [x] **T1 [AC1]** Write `EnchantmentRegistry` with a `LinkedHashMap<String,
+- [ ] **T1 [AC1]** Write `EnchantmentRegistry` with a `LinkedHashMap<String,
       UnaryOperator<Weapon>>` and three entries, each a constructor reference
       (`FlamingWeapon::new`).
-- [x] **T2 [AC1]** Add `isKnown(String)` and `known()` so callers never hardcode the list.
+- [ ] **T2 [AC1]** Add `isKnown(String)` and `known()` so callers never hardcode the list.
       `EnchantCommand`'s help and error messages both read from `known()`.
-- [x] **T3 [AC3]** Write `apply(name, weapon)`: look up, throw `IllegalArgumentException` if
+- [ ] **T3 [AC3]** Write `apply(name, weapon)`: look up, throw `IllegalArgumentException` if
       absent, otherwise return `spell.apply(weapon)`. **There is no branch that returns null.**
-- [x] **T4 [AC2]** Rewrite `EnchantCommand` against the registry, then delete
+- [ ] **T4 [AC2]** Rewrite `EnchantCommand` against the registry, then delete
       `EnchantmentForge.java`. Run the grep in AC2 and expect zero.
-- [x] **T5 [AC5]** In `EnchantCommand.doExecute()`, record
+- [ ] **T5 [AC5]** In `EnchantCommand.doExecute()`, record
       `wasEquipped = (player().getEquippedWeapon() == w)` **before** the swap, and call
       `player().equip(after)` after it. Two lines.
-- [x] **T6 [AC6]** Add a `Weapon equipped` field to `TurnSnapshot` — capture it in the
+- [ ] **T6 [AC6]** Add a `Weapon equipped` field to `TurnSnapshot` — capture it in the
       constructor, restore it in `restore()`. **This is the third time that class has had to
       grow**: Week 7 built it, Week 8 taught it monster states, Week 9 gives it the hand.
-- [x] **T7 [AC4, AC5, AC6]** One test per criterion in a new `DecoratorTest`.
-- [x] **T8** `mvn test`. Commit on `feature/us-7.2-registry`.
+- [ ] **T7 [AC4, AC5, AC6]** One test per criterion in a new `DecoratorTest`.
+- [ ] **T8** `mvn test`. Commit on `feature/us-7.2-registry`.
 
 > **T5 is not the pattern.** Decorator did not fix the stale-hand bug and was never going to;
 > those two lines would have worked in the starter. Say so in your retro. Knowing what a pattern
@@ -267,13 +267,13 @@ counted.
 
 ### Sub-tasks
 
-- [x] **T1 [AC1]** Write `KeenWeapon extends WeaponDecorator`, overriding `getDamage()` to return
+- [ ] **T1 [AC1]** Write `KeenWeapon extends WeaponDecorator`, overriding `getDamage()` to return
       `Math.round(wrapped.getDamage() * 1.5)`.
-- [x] **T2 [AC2]** Add exactly one line to `EnchantmentRegistry`. Commit **only these two
+- [ ] **T2 [AC2]** Add exactly one line to `EnchantmentRegistry`. Commit **only these two
       files** — if anything else is in the commit, the receipt is void.
-- [x] **T3 [AC2]** Run `git diff --stat HEAD~1` and paste it into `docs/evidence.week9.md` §3.
+- [ ] **T3 [AC2]** Run `git diff --stat HEAD~1` and paste it into `docs/evidence.week9.md` §3.
       That output is the graded artifact, not the class.
-- [x] **T4 [AC3]** `mvn test`. Commit on `feature/us-7.3-keen`.
+- [ ] **T4 [AC3]** `mvn test`. Commit on `feature/us-7.3-keen`.
 
 ---
 
@@ -294,15 +294,15 @@ counted.
 
 ### Sub-tasks
 
-- [x] **T1 [AC1]** Write `orderChangesTheResultForMultiplyingDecorators`. Assert the actual
+- [ ] **T1 [AC1]** Write `orderChangesTheResultForMultiplyingDecorators`. Assert the actual
       numbers (16 and 18), not merely that they differ — a test that only says "not equal" passes
       even when both are wrong.
-- [x] **T2 [AC2]** Write `orderChangesHowMuchAVampiricWeaponDrinks`. Same rule: name both
+- [ ] **T2 [AC2]** Write `orderChangesHowMuchAVampiricWeaponDrinks`. Same rule: name both
       numbers (3 and 2).
-- [x] **T3 [AC3]** Write a `describe()` test on a three-deep stack.
-- [x] **T4 [AC4]** Write the paragraph. One idea, stated plainly: *a decorator can only see what
+- [ ] **T3 [AC3]** Write a `describe()` test on a three-deep stack.
+- [ ] **T4 [AC4]** Write the paragraph. One idea, stated plainly: *a decorator can only see what
       is underneath it*. Everything else follows from that sentence.
-- [x] **T5** `mvn test`. Commit on `feature/us-7.4-order`.
+- [ ] **T5** `mvn test`. Commit on `feature/us-7.4-order`.
 
 ---
 
@@ -332,25 +332,14 @@ counted.
 
 | Story | Estimated | Actual hours | High, low, about right? |
 |---|---|---|---|
-| US-6.7 | 1 | 0.5 | About right |
-| US-7.1 | 4 | 2 | About right, the deletions and fixing call sites took most of it |
-| US-7.2 | 3 | 1.5 | About right |
-| US-7.3 | 1 | 0.5 | About right, one class and one line |
-| US-7.4 | 2 | 0.5 | High, the tests were quick once the decorators existed |
+| US-6.7 | 1 | | |
+| US-7.1 | 4 | | |
+| US-7.2 | 3 | | |
+| US-7.3 | 1 | | |
+| US-7.4 | 2 | | |
 
-**Points completed:** 11 of 11 · **Running velocity:** ____ *(average your Completed column)*
+**Points completed:** ____ · **Running velocity:** ____
 
 ## Sprint Review — one sentence
 
-All five stories shipped: enchantments now stack in any combination, depth and order, and adding
-`keen` cost exactly one new file and one added line (`git diff --stat`: 2 files, 12 insertions),
-with 111 tests green.
-
 ## Retro — one thing to keep, one thing to change
-
-- **Decorator gave me:** 7 combination classes, 34 `instanceof` tests and 13 `return null` paths
-  became one class per enchantment, so the fourth one cost 1 file and 1 line.
-- **Decorator did not give me:** the stale-hand fix. That was an ordinary bug in
-  `EnchantCommand`, fixed by hand with two lines that would have worked in the starter too.
-- **Keep:** committing US-7.3 on its own so the `git diff --stat` receipt stayed clean.
-- **Change:** run the full test suite before each merge, not just at the end of the story.

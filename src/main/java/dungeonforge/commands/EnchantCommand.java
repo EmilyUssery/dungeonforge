@@ -5,15 +5,21 @@ import dungeonforge.items.Item;
 import dungeonforge.items.Weapon;
 
 /**
- * WEEK 9 -- `enchant <weapon> with <enchantment>`
+ * WEEK 9 STARTER -- PART OF THE PROBLEM.
  *
- * US-7.2 -- written against EnchantmentRegistry. The old "cannot take another X enchantment"
- * refusal is gone because there is no longer a combination that has no class.
+ * `enchant <weapon> with <enchantment>`
  *
- * No undo() here: TurnSnapshot now remembers the equipped weapon too, so the inherited undo
- * puts both the pack and the hand back.
+ * This command is honest about what it can do, which is not much. Read the three failure
+ * messages below -- each one is a limitation of EnchantmentForge leaking into the player's
+ * face. None of them is a rule anyone chose. They are all "we ran out of classes."
+ *
+ * US-7.2 makes every one of these messages impossible to reach.
  */
 public class EnchantCommand extends AbstractCommand {
+
+    private Weapon before;
+    private Weapon after;
+    private boolean wasEquipped;
 
     public EnchantCommand(GameContext ctx, String args) { super(ctx, args); }
 
@@ -30,7 +36,7 @@ public class EnchantCommand extends AbstractCommand {
 
         if (!EnchantmentRegistry.isKnown(enchantment)) {
             bus().message("No such enchantment: " + enchantment
-                    + ". Known enchantments: " + String.join(", ", EnchantmentRegistry.known()));
+                    + ". Known: " + String.join("|", EnchantmentRegistry.known()));
             return false;
         }
         Item item = player().findItem(target);
@@ -43,17 +49,18 @@ public class EnchantCommand extends AbstractCommand {
             return false;
         }
 
-        // US-7.2 T5 -- the stale-hand fix. NOT the pattern: these two lines would have worked
-        // in the starter too. Enchanting still produces a new outer object, so if the old one
-        // was in the player's hand, the hand has to be pointed at the new one.
-        boolean wasEquipped = (player().getEquippedWeapon() == w);
-        Weapon after = EnchantmentRegistry.apply(enchantment, w);
+        before = w;
+        after = EnchantmentRegistry.apply(enchantment, w);
+        wasEquipped = (player().getEquippedWeapon() == w);
 
         player().removeItem(w);
         player().addItem(after);
-        if (wasEquipped) player().equip(after);
-
+        if(wasEquipped) { player().equip(after);}
         bus().message("The " + w.getName() + " is now " + after.describe());
+
+        // KNOWN DEFECT (US-7.2). `result` is a DIFFERENT OBJECT. If the old weapon was the
+        // equipped one, the equipped slot still points at the unenchanted original, and the
+        // player's damage does not change. Equip, enchant, then check `status` and see.
         return true;
     }
 

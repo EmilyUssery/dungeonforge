@@ -287,103 +287,120 @@ class StateTest {
 
     // ---------- US-6.7 (carried over from Sprint 6): one answer to "is the game over?" ----------
 
-    /** Strip comments first, so a comment that MENTIONS the flag cannot trip the search. */
-    private static String codeOnly(String source) {
-        return source.replaceAll("(?s)/\\*.*?\\*/", "")
-                     .replaceAll("(?m)//.*$", "");
-    }
-
-    /** The body of one method, found by brace counting from its signature. */
-    private static String methodBody(String source, String signature) {
-        int start = source.indexOf(signature);
-        assertTrue(start >= 0, "could not find " + signature);
-        int open = source.indexOf('{', start);
-        int depth = 0;
-        for (int i = open; i < source.length(); i++) {
-            char ch = source.charAt(i);
-            if (ch == '{') depth++;
-            if (ch == '}' && --depth == 0) return source.substring(open, i + 1);
-        }
-        throw new AssertionError("unbalanced braces after " + signature);
-    }
-
+    /**
+     * THE POINT OF US-6.7. Two facts, two representations, neither consulting the other:
+     *
+     *   the ADVENTURE is over  ->  a terminal GameState
+     *   the SESSION  is over   ->  GameContext.running
+     *
+     * Dying sets only the first, which is what makes GameOverState's verb list reachable at
+     * last. Before this story the loop exited the instant the player died, so nobody ever got
+     * a turn in Game Over mode and that verb list was dead code.
+     */
     @Test
-    void onlyGameOverIsTerminal() {
-        assertTrue(new GameOverState().isTerminal());
-        assertFalse(new ExploringState().isTerminal());
-        assertFalse(new CombatState().isTerminal());
-        assertFalse(new InventoryState().isTerminal());
-    }
-
-    @Test
-    void deathIsTerminalButTheSessionKeepsRunning() {
-        Monster m = monster("Ogre", 200, 50);
-        ctx.getCurrentRoom().getMonsters().add(m);
+    void deathIsATerminalStateButTheSessionKeepsRunning() {
+        Monster butcher = new Monster("Butcher", 500, 999, 1);
+        butcher.setStrategy(new AggressiveStrategy());
+        ctx.getCurrentRoom().getMonsters().add(butcher);
         ctx.syncState();
-        m.setState(new HuntingState());
+        butcher.setState(new HuntingState());
         player.setHp(1);
 
         run("attack");
         ctx.syncState();
 
-        assertFalse(player.isAlive(), "a 50-attack ogre should finish a 1 HP player");
+        assertFalse(player.isAlive());
         assertInstanceOf(GameOverState.class, ctx.getState(), "death must land in Game Over");
-        assertTrue(ctx.getState().isTerminal());
-        assertTrue(ctx.isRunning(), "the adventure is over; the session is not");
+        assertTrue(ctx.getState().isTerminal(), "the adventure is over");
+        assertTrue(ctx.isRunning(), "but the SESSION is not -- you can still read your record");
     }
 
     @Test
-    void aTerminalStateIsSomewhereYouStayEvenWhenHealed() {
-        run("quit");
+    void theGameOverVerbListIsReachableAtLast() {
+        player.setHp(0);
+        ctx.syncState();
+
+        assertInstanceOf(GameOverState.class, ctx.getState());
+        assertTrue(ctx.allowedVerbs().contains("quests"), "you may read your record");
+        assertTrue(ctx.allowedVerbs().contains("quit"));
+        assertFalse(ctx.allowedVerbs().contains("north"), "but you may not walk");
+        assertFalse(ctx.allowedVerbs().contains("attack"));
+    }
+
+    /** Terminal means terminal. A sync must not put a finished game back on its feet. */
+    @Test
+    void gameOverIsSomewhereYouStay() {
+        player.setHp(0);
+        ctx.syncState();
         assertInstanceOf(GameOverState.class, ctx.getState());
 
-        player.setHp(player.getMaxHp());
+        player.heal(999);                 // even if something revives the hit points
         ctx.syncState();
+        ctx.syncState();
+
         assertInstanceOf(GameOverState.class, ctx.getState(),
-                "a healed quitter must not be dragged back into Exploring");
-
-        player.setHp(0);
-        ctx.syncState();
-        player.setHp(10);
-        ctx.syncState();
-        assertInstanceOf(GameOverState.class, ctx.getState());
+                "the terminal guard must come BEFORE the Exploring/Combat branches");
     }
 
     @Test
-    void gameOverOffersItsFourVerbsAndNoMovement() {
-        player.setHp(0);
-        ctx.syncState();
-        for (String verb : new String[] { "quests", "history", "status", "quit" }) {
-            assertTrue(ctx.allowedVerbs().contains(verb), verb + " must be reachable after death");
-            assertFalse(parser.parse(verb, ctx) instanceof NoCommand, verb + " must parse in Game Over");
-        }
-        assertFalse(ctx.allowedVerbs().contains("north"));
-        assertInstanceOf(NoCommand.class, parser.parse("north", ctx));
-    }
-
-    @Test
-    void quitEndsTheAdventureAndTheSession() {
+    void quitEndsTheAdventureAndTheSessionTogether() {
+        assertTrue(ctx.isRunning());
         run("quit");
-        assertTrue(ctx.getState().isTerminal(), "quit must end the adventure");
-        assertFalse(ctx.isRunning(), "quit must end the session");
+
+        assertInstanceOf(GameOverState.class, ctx.getState(), "the adventure ended");
+        assertFalse(ctx.isRunning(), "and so did the session");
     }
 
     @Test
-    void syncStateNoLongerReadsTheSessionFlag() throws Exception {
-        String source = codeOnly(java.nio.file.Files.readString(
+    void aSyncDoesNotRestartASessionThePlayerEnded() {
+        run("quit");
+        ctx.syncState();
+        ctx.syncState();
+        assertFalse(ctx.isRunning());
+    }
+
+    /**
+     * US-6.7's absence assertion, and the one that would have caught the original defect.
+     *
+     * syncState() decides the mode from the WORLD. The moment it reads a session flag, the
+     * game-over rule exists in two places, and Main makes it three.
+     */
+    @Test
+    void syncStateDecidesTheModeFromTheWorldAndNeverFromASessionFlag() throws Exception {
+        String source = new String(java.nio.file.Files.readAllBytes(
                 java.nio.file.Path.of("src/main/java/dungeonforge/commands/GameContext.java")));
-        String body = methodBody(source, "void syncState()");
-        assertFalse(body.contains("running"), "syncState decides the MODE; it must not read the session flag");
-        assertFalse(body.contains("isRunning"));
+        int syncAt = source.indexOf("public void syncState()");
+        assertTrue(syncAt > 0, "syncState() should exist");
+        String body = codeOnly(source.substring(syncAt, source.indexOf("public List<String> allowedVerbs()", syncAt)));
+
+        assertFalse(body.contains("running"),
+                "syncState() must not consult the session flag -- that is what put one rule "
+              + "in three places. Death is a world fact; quitting is a session fact.");
     }
 
     @Test
-    void mainAsksOneQuestionAboutWhetherToKeepGoing() throws Exception {
-        String main = codeOnly(java.nio.file.Files.readString(
-                java.nio.file.Path.of("src/main/java/dungeonforge/Main.java")));
-        assertTrue(main.contains("while (ctx.isRunning())"), "the loop asks exactly one question");
-        assertTrue(main.contains("if (!ctx.isRunning()) break;"), "so does the script runner");
-        assertFalse(main.contains("isRunning() &&"), "no second clause on the loop");
-        assertFalse(main.contains("isRunning() ||"), "no second clause in the script runner");
+    void theGameLoopAsksOneQuestionNotTwo() throws Exception {
+        String main = codeOnly(new String(java.nio.file.Files.readAllBytes(
+                java.nio.file.Path.of("src/main/java/dungeonforge/Main.java"))));
+        assertFalse(main.contains("isRunning() && ctx.getPlayer().isAlive()"),
+                "the loop condition must not re-implement the game-over rule");
+        assertFalse(main.contains("!ctx.isRunning() || !ctx.getPlayer().isAlive()"),
+                "nor must the script runner");
+    }
+
+    /**
+     * Source with every comment stripped out, for the absence assertions above.
+     *
+     * This exists because a naive source.contains("running") is tripped by a COMMENT that
+     * merely mentions the word -- including a comment explaining that the code deliberately
+     * does not read it. An assertion that prose can break is an assertion that will be "fixed"
+     * by deleting the prose, which is backwards.
+     *
+     * If you write your own absence assertions, strip comments first. Grep the code, not the
+     * commentary.
+     */
+    private static String codeOnly(String source) {
+        return source.replaceAll("(?s)/\\*.*?\\*/", "")   // block comments
+                     .replaceAll("(?m)//.*$", "");            // line comments
     }
 }

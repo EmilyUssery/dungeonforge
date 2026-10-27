@@ -1,11 +1,25 @@
 package dungeonforge.items;
 
-/** WEEK 9 (US-7.3) -- the fourth enchantment. It MULTIPLIES what is underneath; it does not add. */
-public class KeenWeapon extends WeaponDecorator {
+public class KeenWeapon extends WeaponDecorator{
 
-    public KeenWeapon(Weapon wrapped) { super(wrapped); }
+    private static final double EDGE = 1.5;
 
-    @Override public int getDamage()        { return (int) Math.round(wrapped.getDamage() * 1.5); }
-    @Override protected String prefix()     { return "Keen"; }
-    @Override protected int valueBonus()    { return 75; }
+    public KeenWeapon(Weapon wrapped) {
+        super(wrapped);
+    }
+
+    @Override
+    protected String prefix() {
+        return "Keen";
+    }
+
+    @Override
+    protected int valueBonus() {
+        return 75;
+    }
+
+    @Override
+    public int getDamage() {
+        return (int)Math.round(wrapped.getDamage() * EDGE);
+    }
 }
