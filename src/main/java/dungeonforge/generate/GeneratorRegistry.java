@@ -16,6 +16,7 @@ public final class GeneratorRegistry {
         shapes.add(new CorridorGenerator());
         shapes.add(new CaveGenerator());
         shapes.add(new RingGenerator());
+        shapes.add(new SpokeGenerator());
     }
 
     /** Levels cycle through the registered shapes; depth 1 is always the first. */
