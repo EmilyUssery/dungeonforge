@@ -19,11 +19,11 @@
 | Sprint | Committed | Completed |
 |---|---|---|
 | Sprint 3 (Wk 5) | 10 | ____ |
-| Sprint 5 (Wk 7) | 10 | ____ |
-| Sprint 6 (Wk 8) | 12 | ____ |
-| Sprint 7 (Wk 9) | 11 | ____ |
-| Sprint 8 (Wk 10) | 12 | ____ |
-| **Sprint 9 (Wk 12)** | **10** | ____ |
+| Sprint 5 (Wk 7) | 10 | 10 |
+| Sprint 6 (Wk 8) | 12 | 12 (all four stories, PR #65) |
+| Sprint 7 (Wk 9) | 11 | 11 (US-6.7, 7.1–7.4 all merged) |
+| Sprint 8 (Wk 10) | 12 | 12 (see sprint-08-plan.md) |
+| **Sprint 9 (Wk 12)** | **10** | **10** |
 
 **Six sprints, six empty Completed columns.** "Capacity ~10" has been a guess since Week 5 and
 nothing has ever checked it. This sprint commits **exactly** 10 for the first time, which makes
@@ -429,12 +429,17 @@ different games.
 
 | Story | Estimated | Actual hours | High, low, about right? |
 |---|---|---|---|
-| **US-8.5** (carry-over) | **1** | | |
-| US-9.1 | 3 | | |
-| US-9.2 | 4 | | |
-| US-9.3 | 2 | | |
+| **US-8.5** (carry-over) | **1** | ~0.25 | High (two small fixes once the red tests pointed at them) |
+| US-9.1 | 3 | ~0.5 | High |
+| US-9.2 | 4 | ~0.75 | About right for the size of the change, high on hours |
+| US-9.3 | 2 | ~0.25 (incl. the D2/D3 experiments) | High |
 
-**Points completed:** ____ · **Running velocity:** ____
+*As in Sprint 8, the whole sprint was done in one sitting on 7 Nov with AI assistance writing
+and testing the code while I ran the commands, checked the output and opened the PRs. The hours
+are lower than the points predict and are not a fair basis for planning a sprint done alone.*
+
+**Points completed:** **10 of 10** (four stories, four PRs, `mvn test` 158 green) · **Running
+velocity:** ~11 (Sprints 5–9: 10, 12, 11, 12, 10). The first time this column has five real numbers.
 
 **This is the sixth sprint with an empty Completed column.** Fill this one in, and fill in
 Sprint 8's while the commits are still fresh. Three weeks of real numbers beats six months of
@@ -442,8 +447,23 @@ Sprint 8's while the commits are still fresh. Three weeks of real numbers beats 
 
 ## Sprint Review — one sentence
 
+Ten monsters from the previous team's bestiary now spawn in the dungeon without `MonsterFactory`
+or `LegacyBestiary` changing a byte, and starting a game is one call (`GameSession.start()`) with
+one copy of the turn, so a script can no longer walk past a live monster and `DamageMeter`
+finally fires.
+
 ## Retro — one thing to keep, one thing to change
+
+- **Keep:** writing the failing test first. US-8.5's two red tests pointed straight at the two fixes.
+- **Change:** count behaviour, not wiring. "4 subscribe calls" looked complete for seven weeks;
+  only a test that made `DamageMeter` *fire* proved anything. Full retro in `docs/retro/sprint-09.md`.
 
 **And one specific question this week:** Adapter and Facade are both "a class that stands in
 front of other classes." In one sentence each, say what made them different in practice —
 not in the book.
+
+- **Adapter, in practice:** it made one thing I couldn't change (`LegacyBestiary`) usable by
+  another thing I wasn't allowed to change (`MonsterFactory`), and its hard part was being honest
+  about the data the file didn't have.
+- **Facade, in practice:** it didn't add a feature; it took knowledge that lived in two drifting
+  copies inside `main()` and put it in one place, and that alone fixed two real bugs.
