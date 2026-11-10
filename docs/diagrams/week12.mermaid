@@ -5,53 +5,7 @@ config:
 classDiagram
     direction TB
 
-%% =====================================================================
-%% DUNGEONFORGE v0.12.0 - WEEK 12 COMPLETE UML CLASS DIAGRAM
-%% Point-in-time snapshot of the code tagged v0.12.0, end of Sprint 9 (97 source files).
-%% Class members generated from the compiled classes (reflection, -parameters),
-%% so every field, method and signature below is in the code as written.
-%%
-%% Patterns, grouped:
-%%   1. Singleton ............ GameConfig, RandomSource
-%%   2. Simple Factory ....... MonsterFactory
-%%   3. Factory Method ....... RoomPopulator hierarchy (populate() is final)
-%%   4. Abstract Factory ..... ThemeKit family + ThemeRegistry
-%%   5. Strategy ............. CombatStrategy family
-%%   6. Observer ............. EventBus + GameEventListener family
-%%   7. Command .............. Command, AbstractCommand, concrete commands,
-%%                             MacroCommand, CommandParser (invoker), GameContext (receiver)
-%%   8. Memento .............. TurnSnapshot + CommandHistory (caretaker)
-%%   9. Null Object .......... NoCommand
-%%  10. State (week 8) ....... MonsterState family (lifecycle) + GameState family (modes)
-%%  11. Decorator (week 9) ... Weapon <- WeaponDecorator <- Flaming/Frost/Vampiric/Keen
-%%                             US-7.5 (week 10): peel() on Weapon removes the OUTERMOST layer
-%%  12. Template Method ...... LevelGenerator.generate() is FINAL (NEW week 10)
-%%                             fixed steps: private | primitive: abstract | hooks: empty bodies
-%%                             also: AbstractCommand.execute() and RoomPopulator.populate()
-%%  13. Adapter (NEW week 12)  MonsterSource (target) <- LegacyBestiaryAdapter -> LegacyBestiary (adaptee)
-%%                             client MonsterFactory is byte-identical and never learns a CSV exists
-%%  14. Facade (NEW week 12) . GameSession: start() / buildWorldOnly() / runLine()
-%%                             the only assembly of the game and the only copy of the turn
-%%
-%% Week 12 changes vs week 10:
-%%   + package legacy: LegacyBestiary (given, unchanged) + LegacyBestiaryAdapter
-%%   + factory.MonsterSource, session.GameSession (+ nested TranscriptRecorder)
-%%   + GameWorld(Player, MonsterFactory): sources are registered BEFORE generation
-%%   - Main: gameLoop() and runScript() DELETED (2 copies of the turn -> 0); main() 80 -> 41 lines
-%%   - Main.ConsolePrinter DELETED: moved to events.ConsolePrinter, passed in as the view
-%%   ~ US-8.5: EnchantmentRegistry.normalise(); MONSTER_SATE_CHANGED -> MONSTER_STATE_CHANGED
-%%
-%% Week 10 changes vs week 9:
-%%   + package generate: LevelGenerator, 4 shapes, GeneratorRegistry
-%%   + DungeonReport (--report), DisenchantCommand, Weapon.peel()
-%%   - GameWorld: buildCorridorLevel / buildCaveLevel / buildRingLevel, the
-%%     switch, pruneUnreachable and populatorFor all DELETED (269 -> 87 lines)
-%%   - WeaponDecorator.unwrap() DELETED (replaced by peel())
-%% =====================================================================
 
-%% ---------------------------------------------------------------------
-%% ENTRY POINT
-%% ---------------------------------------------------------------------
     namespace ENTRY_POINT {
         class Main {
             <<final>>
@@ -62,9 +16,6 @@ classDiagram
         }
     }
 
-%% ---------------------------------------------------------------------
-%% 1. SINGLETON
-%% ---------------------------------------------------------------------
     namespace SINGLETON {
         class GameConfig {
             <<final, Singleton>>
@@ -111,9 +62,6 @@ classDiagram
         }
     }
 
-%% ---------------------------------------------------------------------
-%% CORE DOMAIN
-%% ---------------------------------------------------------------------
     namespace CORE {
         class Entity {
             <<abstract>>
@@ -251,9 +199,6 @@ classDiagram
         }
     }
 
-%% ---------------------------------------------------------------------
-%% ITEMS
-%% ---------------------------------------------------------------------
     namespace ITEMS {
         class Item {
             <<interface>>
@@ -318,9 +263,6 @@ classDiagram
         }
     }
 
-%% ---------------------------------------------------------------------
-%% DECORATOR (WEEK 9)
-%% ---------------------------------------------------------------------
     namespace DECORATOR {
         class Weapon {
             <<interface>>
@@ -392,9 +334,6 @@ classDiagram
         }
     }
 
-%% ---------------------------------------------------------------------
-%% 2. SIMPLE FACTORY
-%% ---------------------------------------------------------------------
     namespace SIMPLE_FACTORY {
         class MonsterFactory {
             -Map~String,MonsterDef~ blueprints
@@ -425,9 +364,6 @@ classDiagram
         }
     }
 
-%% ---------------------------------------------------------------------
-%% 3. FACTORY METHOD
-%% ---------------------------------------------------------------------
     namespace FACTORY_METHOD {
         class RoomPopulator {
             <<abstract>>
@@ -457,9 +393,6 @@ classDiagram
         }
     }
 
-%% ---------------------------------------------------------------------
-%% 4. ABSTRACT FACTORY
-%% ---------------------------------------------------------------------
     namespace ABSTRACT_FACTORY {
         class ThemeKit {
             <<interface>>
@@ -519,9 +452,6 @@ classDiagram
         }
     }
 
-%% ---------------------------------------------------------------------
-%% 5. STRATEGY
-%% ---------------------------------------------------------------------
     namespace STRATEGY {
         class CombatStrategy {
             <<interface>>
@@ -574,9 +504,6 @@ classDiagram
         }
     }
 
-%% ---------------------------------------------------------------------
-%% 6. OBSERVER
-%% ---------------------------------------------------------------------
     namespace OBSERVER {
         class EventBus {
             <<final>>
@@ -689,9 +616,6 @@ classDiagram
         }
     }
 
-%% ---------------------------------------------------------------------
-%% 13. ADAPTER (NEW week 12) -- implements one type, holds a DIFFERENT one
-%% ---------------------------------------------------------------------
     namespace ADAPTER {
         class MonsterSource {
             <<interface, Target>>
@@ -725,9 +649,6 @@ classDiagram
         }
     }
 
-%% ---------------------------------------------------------------------
-%% 14. FACADE (NEW week 12) -- one front door, one copy of the turn
-%% ---------------------------------------------------------------------
     namespace FACADE {
         class GameSession {
             <<final, Facade>>
@@ -764,9 +685,6 @@ classDiagram
         }
     }
 
-%% ---------------------------------------------------------------------
-%% 7. COMMAND
-%% ---------------------------------------------------------------------
     namespace COMMAND {
         class Command {
             <<interface>>
@@ -924,9 +842,6 @@ classDiagram
         }
     }
 
-%% ---------------------------------------------------------------------
-%% 8. MEMENTO
-%% ---------------------------------------------------------------------
     namespace MEMENTO {
         class TurnSnapshot {
             <<final, Memento>>
@@ -961,9 +876,6 @@ classDiagram
         }
     }
 
-%% ---------------------------------------------------------------------
-%% STATE: MONSTER LIFECYCLE (WEEK 8)
-%% ---------------------------------------------------------------------
     namespace STATE_MONSTER_LIFECYCLE {
         class MonsterState {
             <<interface>>
@@ -1011,9 +923,6 @@ classDiagram
         }
     }
 
-%% ---------------------------------------------------------------------
-%% STATE: GAME MODES (WEEK 8)
-%% ---------------------------------------------------------------------
     namespace STATE_GAME_MODES {
         class GameState {
             <<interface>>
@@ -1054,9 +963,6 @@ classDiagram
         }
     }
 
-%% ---------------------------------------------------------------------
-%% TEMPLATE METHOD (NEW WEEK 10)
-%% ---------------------------------------------------------------------
     namespace TEMPLATE_METHOD {
         class LevelGenerator {
             <<abstract, Template Method>>
@@ -1106,11 +1012,7 @@ classDiagram
         }
     }
 
-%% =====================================================================
-%% RELATIONSHIPS
-%% =====================================================================
 
-%% --- core domain ---
     Entity <|-- Player : extends
     Entity <|-- Monster : extends
     GameWorld *-- "1..*" DungeonLevel : owns levels
@@ -1127,14 +1029,12 @@ classDiagram
     DungeonReport ..> GameWorld : of(world)
     DungeonReport ..> DungeonLevel : countOrphans, stairsReachable
 
-%% --- items ---
     Item <|-- Weapon : extends (interface)
     Item <|.. Armor : implements
     Item <|.. Potion : implements
     Item <|.. Treasure : implements
     Item <|.. Hourglass : implements
 
-%% --- decorator (week 9, peel() week 10) ---
     Weapon <|.. BasicWeapon : implements
     Weapon <|.. WeaponDecorator : implements
     WeaponDecorator o-- "1" Weapon : wrapped (peel() returns it)
@@ -1148,7 +1048,6 @@ classDiagram
     EquipCommand ..> Weapon : equip
     ThemeKit ..> WeaponDecorator : enchanted loot
 
-%% --- singletons ---
     GameConfig ..> Json : parses config.json
     MonsterFactory ..> GameConfig : readResource()
     MonsterFactory ..> RandomSource : stat variance
@@ -1156,19 +1055,16 @@ classDiagram
     Combat ..> GameConfig : restHealPerRoom
     Player ..> GameConfig : starting stats
 
-%% --- simple factory ---
     MonsterFactory *-- "0..*" MonsterDef : blueprints
     MonsterFactory ..> Monster : creates
     MonsterFactory ..> CombatStrategy : strategyFor()
 
-%% --- factory method ---
     RoomPopulator <|-- StandardRoomPopulator : extends
     RoomPopulator <|-- TreasureRoomPopulator : extends
     RoomPopulator <|-- BossRoomPopulator : extends
     RoomPopulator --> ThemeKit : uses theme
     RoomPopulator ..> Room : populates
 
-%% --- abstract factory ---
     ThemeKit <|.. CryptThemeKit : implements
     ThemeKit <|.. ForgeThemeKit : implements
     ThemeKit <|.. FrostThemeKit : implements
@@ -1183,7 +1079,6 @@ classDiagram
     GameWorld *-- ThemeRegistry : themes
     GameWorld *-- MonsterFactory : monsterFactory
 
-%% --- template method (NEW week 10) ---
     LevelGenerator <|-- CorridorGenerator : extends
     LevelGenerator <|-- CaveGenerator : extends
     LevelGenerator <|-- RingGenerator : extends
@@ -1198,7 +1093,6 @@ classDiagram
     LevelGenerator ..> RandomSource : treasure roll
     CaveGenerator ..> RandomSource : random parents + shortcuts
 
-%% --- strategy ---
     CombatStrategy <|.. AggressiveStrategy : implements
     CombatStrategy <|.. RangedStrategy : implements
     CombatStrategy <|.. SkittishStrategy : implements
@@ -1209,7 +1103,6 @@ classDiagram
     Action --> Action_Type : type
     Combat ..> CombatStrategy : asks chooseAction()
 
-%% --- observer ---
     EventBus o-- "0..*" GameEventListener : notifies
     EventBus ..> GameEvent : publishes
     GameEvent --> EventType : type
@@ -1227,7 +1120,6 @@ classDiagram
     ConsolePrinter ..> CombatLog : formats events
     GameSession_TranscriptRecorder ..> CombatLog : formats events
 
-%% --- command ---
     Command <|.. AbstractCommand : implements
     Command <|.. SimpleCommand : implements
     Command <|.. NoCommand : implements
@@ -1262,7 +1154,6 @@ classDiagram
     UseItemCommand ..> Hourglass : rewind
     UseItemCommand ..> CommandHistory : undoLast()
 
-%% --- state: monster lifecycle ---
     MonsterState <|.. IdleState : implements
     MonsterState <|.. HuntingState : implements
     MonsterState <|.. EnragedState : implements
@@ -1279,7 +1170,6 @@ classDiagram
     Combat ..> MonsterState : canAct, next, damageMultiplier
     TurnSnapshot ..> MonsterState : saves + restores
 
-%% --- state: game modes ---
     GameState <|.. ExploringState : implements
     GameState <|.. CombatState : implements
     GameState <|.. InventoryState : implements
@@ -1287,21 +1177,18 @@ classDiagram
     GameContext o-- GameState : state (current mode)
     CommandParser ..> GameContext : allowedVerbs gate + help
 
-%% --- memento ---
     AbstractCommand *-- "0..1" TurnSnapshot : before (Memento)
     CommandHistory o-- "0..maxDepth" Command : undo stack
     TurnSnapshot --> Player : restores (incl. equipped Weapon)
     TurnSnapshot --> Room : restores
     TurnSnapshot ..> Monster : hp + strategy + state
 
-%% --- adapter (NEW week 12) ---
     MonsterSource <|.. LegacyBestiaryAdapter : implements (Target)
     LegacyBestiaryAdapter o-- LegacyBestiary : adaptee (a DIFFERENT type)
     LegacyBestiaryAdapter ..> MonsterDef : translates records into
     MonsterSource ..> MonsterDef : supplies
     LegacyBestiary ..> GameConfig : readResource(bestiary.csv)
 
-%% --- facade (NEW week 12) ---
     GameSession *-- GameSession_TranscriptRecorder : inner listener
     GameSession --> GameWorld : world
     GameSession --> Player : player
@@ -1320,15 +1207,11 @@ classDiagram
     GameSession ..> BasicWeapon : starting Notched Shortsword
     GameSession ..> Combat : builds
 
-%% --- entry point wiring (week 12: Main knows the facade, not the subsystem) ---
     Main ..> GameSession : start() / runLine() / buildWorldOnly()
     Main ..> ConsolePrinter : passes in as the view
     Main ..> DungeonReport : --report
     Main ..> RandomSource : reseed(--seed)
 
-%% =====================================================================
-%% STYLING - one colour per pattern
-%% =====================================================================
     classDef templ fill:#d9f2d9,stroke:#2e7d32,stroke-width:2px
     classDef deco fill:#fde7c8,stroke:#e08a00
     classDef cmd fill:#e3ecfb,stroke:#3b6fd4
@@ -1344,9 +1227,6 @@ classDiagram
     cssClass "MonsterSource,LegacyBestiaryAdapter,LegacyBestiary" adapt
     cssClass "GameSession" facade
 
-%% =====================================================================
-%% NOTES
-%% =====================================================================
     note for LevelGenerator "generate() is FINAL: createRooms, connectRooms, markEntrance,\npopulateRooms (from r = 1), addShortcuts, decorate, enforceReachability.\nFixed steps are private, connectRooms is abstract, the two hooks are empty."
     note for GameWorld "Week 10: the three build*Level copies, the switch and\npruneUnreachable were deleted. 269 -> 87 lines."
     note for WeaponDecorator "peel() replaced unwrap() (US-7.5).\nLast on, first off: only the outermost layer can be removed."
