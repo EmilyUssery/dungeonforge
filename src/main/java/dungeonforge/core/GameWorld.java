@@ -16,17 +16,33 @@ import java.util.List;
  * WEEK 10 (US-8.1) -- and building is gone too. GeneratorRegistry decides each level's SHAPE,
  * and LevelGenerator.generate() is the one copy of the algorithm that builds it. This class
  * asks two registries and links the levels together; it no longer knows how a level is made.
+ * WEEK 12 (US-9.2) -- it can be handed a MonsterFactory, so blueprints from other sources
+ * (the legacy bestiary) are in place before the dungeon is generated.
  */
 public class GameWorld {
 
     private final Player player;
-    private final MonsterFactory monsterFactory = new MonsterFactory();
-    private final ThemeRegistry themes = new ThemeRegistry(monsterFactory);
+    private final MonsterFactory monsterFactory;
+    private final ThemeRegistry themes;
     private final GeneratorRegistry shapes = new GeneratorRegistry();
     private final List<DungeonLevel> levels = new ArrayList<>();
 
     public GameWorld(Player player) {
+        this(player, new MonsterFactory());
+    }
+
+    /**
+     * WEEK 12 (US-9.2) -- build the world from a factory somebody has ALREADY filled.
+     *
+     * The dungeon is generated inside this constructor, so every monster source has to be
+     * registered with the factory before this is called; a blueprint registered afterwards can
+     * never spawn. GameSession owns that ordering. The one-argument form above stays because
+     * 137 tests use it.
+     */
+    public GameWorld(Player player, MonsterFactory monsterFactory) {
         this.player = player;
+        this.monsterFactory = monsterFactory;
+        this.themes = new ThemeRegistry(monsterFactory);
         generate();
     }
 
