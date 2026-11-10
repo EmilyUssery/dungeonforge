@@ -40,7 +40,7 @@ import java.util.List;
  */
 public final class Main {
 
-    public static final String VERSION = "0.10.0";
+    public static final String VERSION = "0.12.0";
 
     private Main() { }
 
@@ -75,7 +75,25 @@ public final class Main {
         // WEEK 9 (PROVIDED) -- a plain weapon to start with, so the enchantment exercises in
         // docs/evidence.md work on turn one instead of waiting on a loot drop.
         player.addItem(new dungeonforge.items.BasicWeapon("Notched Shortsword", 2.5, 25, 5));
+
+        // =============================================================================
+        // WEEK 12 -- THE ASSEMBLY BLOCK. Everything from here to the first `look` below is
+        // wiring: five collaborators, four subscriptions, and an order that matters.
+        //
+        // Count the listener classes in events/ before you read on. Then count the
+        // bus.subscribe calls here. US-9.2 is about the difference.
+        //
+        // Nothing enforces that this block is complete, or that it is the same block the
+        // script path gets, because there is only one copy of it and it lives in main().
+        // =============================================================================
         GameWorld world = new GameWorld(player);
+
+        // WEEK 12 (US-9.1) -- YOUR ADAPTER PLUGS IN HERE.
+        //
+        // Register the previous team's bestiary with the factory, through the adapter you
+        // write. One line. You will MOVE that line into GameSession in US-9.2 -- that is
+        // expected, and it is the point: a wiring step that lives in main() has to be
+        // remembered by every caller, and there is about to be more than one caller.
 
         // WEEK 10 -- the diagnostic path. Prints the invariant table and exits before any of
         // the game's wiring is built, because a diagnostic should need as little of the system

@@ -18,14 +18,23 @@ public class EnchantmentRegistry {
         SPELLS.put("keen", KeenWeapon::new);
     }
 
+    /**
+     * WEEK 12 (US-8.5) -- the player's spelling of an enchantment, made comparable to the keys.
+     * "FLAMING" and "  frost  " are what humans type; neither is an error. An unknown name is
+     * still unknown after normalising, so this cannot make everything legal (AC3).
+     */
+    private static String normalise(String enchantment) {
+        return enchantment == null ? "" : enchantment.trim().toLowerCase();
+    }
+
     public static boolean isKnown(String enchantment) {
-        return enchantment != null && SPELLS.containsKey(enchantment);
+        return SPELLS.containsKey(normalise(enchantment));
     }
 
     public static List<String> known() { return new ArrayList<>(SPELLS.keySet()); }
 
     public static Weapon apply(String enchantment, Weapon weapon) {
-        UnaryOperator<Weapon> spell = SPELLS.get(enchantment);
+        UnaryOperator<Weapon> spell = SPELLS.get(normalise(enchantment));
         if (spell == null) { throw new IllegalArgumentException("no such enchantment: " + enchantment); }
         return spell.apply(weapon);
     }
