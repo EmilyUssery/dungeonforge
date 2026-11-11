@@ -18,7 +18,7 @@
 
 | Sprint | Committed | Completed |
 |---|---|---|
-| Sprint 3 (Wk 5) | 10 | ____ |
+| Sprint 3 (Wk 5) | 10 | 10 |
 | Sprint 5 (Wk 7) | 10 | 10 |
 | Sprint 6 (Wk 8) | 12 | 12 (all four stories, PR #65) |
 | Sprint 7 (Wk 9) | 11 | 11 (US-6.7, 7.1–7.4 all merged) |
