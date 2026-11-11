@@ -29,9 +29,8 @@ grep -rn 'MONSTER_SATE_CHANGED' src/main/java | wc -l
 
 **It works perfectly. In one sentence: what does it cost, and when?**
 
-It costs nothing today because all three files agree on the wrong spelling. It costs the next
-person who types the correct name, `MONSTER_STATE_CHANGED`, finds no match and decides the event
-doesn't exist, and that cost grows with every new file that copies the typo.
+It works right now because all three files use the same wrong spelling, so they still match. The cost comes 
+later: someone searching for the correct spelling finds nothing, and has to go back through the code to figure out what it’s actually called.
 
 **Now the other one.** Before changing anything, write a test asserting
 `EnchantmentRegistry.isKnown("FLAMING")`. Run it.
@@ -50,9 +49,8 @@ After `normalise()` and the rename: `Tests run: 139, Failures: 0`. In the game,
 
 **One sentence: 137 tests passed and this did not work. What were those 137 tests about?**
 
-They tested the code with the inputs the programmers wrote ("flaming", already lower case) and
-never with a string a player actually types, so they proved the registry works for programmers,
-not for players.
+The tests only used lowercase “flaming,” the way the code expected it, and never tried capitals
+the way a real player might type it. So they all passed even though the bug was still there.
 
 ---
 
@@ -71,31 +69,26 @@ python3 scripts/codeonly.py src/main/java/dungeonforge/Main.java | grep -c 'bus.
 **Listener classes in `events/`:** **6** (AchievementSystem, CombatLog, ConsolePrinter,
 DamageMeter, QuestTracker, StatisticsCollector)  **`bus.subscribe` calls in `Main`:** **4**
 
-**Those two numbers are equal and that is not reassuring. Why not?** In my repo they aren't even
-equal, and they still overstate it. One of the four subscriptions is `new ConsolePrinter()`, but
-that's `Main`'s own private nested class, not the one in `events/`. So only **three** of the six
-`events/` classes were ever subscribed: quests, achievements and the log. A count of `subscribe`
-calls says nothing about *which* classes were subscribed.
+**Those two numbers are equal and that is not reassuring. Why not?** They look like they match, but one of the 4
+subscribe calls was Main’s own printer, not one of the listener classes in events/. So only 3 of the 6 listener classes
+were actually connected, and counting subscribe calls doesn’t tell you which ones.
 
 **Which listener class is never subscribed?** **`DamageMeter`.** (`StatisticsCollector` and
 `events/ConsolePrinter` weren't subscribed either.)
 
-**Open it. What does it do, and when was it written?** It watches `DAMAGE_TAKEN` events, and when
-the player's HP drops to 25% of starting HP or lower, it posts a one-time "DANGER" warning. It's
-the Week 5 "you're nearly dead" listener; it came into my repo on 8 Oct with the Week 7 starter.
-It compiled, it was correct, and it had never once run.
+**Open it. What does it do, and when was it written?** It watches how much damage the player takes, and when
+your HP drops to 25% or lower, it warns you that you might be dying if you don’t heal. It was added back in Week 5,
+but it was never connected, so it never once warned anyone.
 
 **Now the sentence. Put both counts and the consequence in one sentence.**
 
-> `events/` has six listener classes and `Main` makes four `bus.subscribe` calls, but one of
-> those is `Main`'s own `ConsolePrinter`, so only three listener classes were ever connected,
-> and `DamageMeter`, the warning that you are about to die, has never fired for any player.
+> There are 6 listener classes and 4 subscribe calls, but only 3 of the listener classes were really connected,
+> so DamageMeter never warned the player when they dropped to 25% and were almost dying.
 
 **Nobody broke it. In one sentence: what kind of mistake is this, if it is not a bug?**
 
-It's an omission in the wiring: the list of "which listeners exist" lived only in the order of
-lines in `main()`, and nothing (not the compiler, not the tests) ever checked that list against
-the contents of `events/`.
+It’s a forgotten step, not a broken piece of code. Someone forgot to connect DamageMeter in main(), and nothing
+(not the compiler or the tests) checked that every listener was hooked up.
 
 ---
 
@@ -164,9 +157,9 @@ Now run `mvn -q exec:java` and type the same four commands by hand.
 ```
 
 **They differ. Name the file, the method and the line that is the difference.**
-**`Main.java`, `gameLoop()`, line 154: `ctx.syncState();`.** It comes after `history.push(command)`
-in `gameLoop()`, and it is missing after the same `history.push(command)` in `runScript()`
-(line 173).
+**`Main.java`, `gameLoop()`, line 154: `ctx.syncState();`.** That line checks the room and figures out whether the
+game should be in Exploring or Combat mode. `gameLoop()` (typing) has it after each turn, but `runScript()` (line 173)
+is missing it, so the script never switches into Combat mode.
 
 **Put the two turn sequences side by side:**
 
@@ -175,15 +168,12 @@ in `gameLoop()`, and it is missing after the same `history.push(command)` in `ru
 | `gameLoop()` | parse · execute · push · **`ctx.syncState()`** |
 | `runScript()` | parse · execute · push · *(nothing)* |
 
-**What can a script do that a player cannot?** Walk past a live, hunting monster. The script
-never syncs the mode, so the game stays in Exploring, and Exploring allows `north`. A script can
-walk the player through every hostile room in the dungeon without one fight.
+**What can a script do that a player cannot?** A script could walk right past a monster that was attacking me, because the
+script never switched the game into combat mode, so `north` still worked.
 
 **`runScript`'s javadoc has been promising something since Week 7. Quote it, and say whether it
-is true.** *"Attach one of these to a bug report and the bug reproduces exactly."* **False.** The
-same seed and the same four commands gave two different games: the script ended in L1R2 with
-undo depth 2, while typed play stayed in L1R1 with undo depth 1. The script doesn't reproduce
-what a player did; it plays a different game.
+is true.** *"Attach one of these to a bug report and the bug reproduces exactly."* **False.** I ran the same four
+commands both ways, and they ended in different places: the script ended up in room L1R2, but typing them stayed in L1R1, because the script let me walk past the monster. So a script doesn’t play the same game a player does.
 
 ---
 
