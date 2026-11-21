@@ -12,17 +12,25 @@ commentary.
 
 Open `events/DamageMeter.java` and find where its warning level comes from.
 
-**Paste that line.** ______
+**Paste that line.**
+
+```java
+this.threshold = (int)Math.round(threshold * GameConfig.getInstance().getDouble("playerStartingHp"));
+```
 
 **`playerStartingHp` is a constant in `config.json`. In one sentence: what is the meter supposed
 to be asking, and who is it asking instead?**
 
+> ✍️ YOUR WORDS: (it should ask the player for their current maximum; it asks the config file for the starting number)
+
 
 **Now try to write a test that proves it is wrong.**
 
-**What stops you?** ______
+**What stops you?** `Entity` had no `setMaxHp` (`grep -c setMaxHp Entity.java` → `0`), so nothing could change a maximum. ✍️ YOUR WORDS: 
 
 **One sentence: why did this defect survive four sprints?**
+
+> ✍️ YOUR WORDS: 
 
 
 ---
@@ -35,14 +43,23 @@ for f in $(find src/main/java -name '*.java'); do
 done
 ```
 
-**List them:** ______
+**List them:**
 
-**How many?** ______
+```
+src/main/java/dungeonforge/commands/CommandParser.java
+src/main/java/dungeonforge/commands/TakeCommand.java
+src/main/java/dungeonforge/commands/TurnSnapshot.java
+src/main/java/dungeonforge/core/GameWorld.java
+src/main/java/dungeonforge/core/Room.java
+src/main/java/dungeonforge/factory/RoomPopulator.java
+```
+
+**How many?** 6
 
 **Now the sentence. Name the count and say what it is a count OF.** *(Two points. "Six files use
 getChest" is not it — six files know *something*, and naming that thing is the answer.)*
 
-> ____________________________________________________________________
+> ✍️ YOUR WORDS: (six files know that ______)
 
 **And one more count:**
 
@@ -50,10 +67,12 @@ getChest" is not it — six files know *something*, and naming that thing is the
 grep -rln "carriedWeight\|totalWeight" src/main/java/
 ```
 
-**Result:** ______
+**Result:** nothing — no file in `src/main/java` mentions `carriedWeight` or `totalWeight`.
 
 **Every `Item` has declared `getWeight()` since Week 1. In one sentence, what does that result
 mean about the number on your status line?**
+
+> ✍️ YOUR WORDS: 
 
 
 ---
@@ -65,10 +84,23 @@ Open `commands/TakeCommand.java`. Put `takeFromFloor()` and `takeFromChest()` si
 **Paste both:**
 
 ```java
+    private Item takeFromFloor() {
+        for (Item i : room().getFloorItems()) {
+            if (matches(i)) { room().getFloorItems().remove(i); return i; }
+        }
+        return null;
+    }
 
+    private Item takeFromChest() {
+        if (!room().hasChest()) return null;
+        for (Item i : room().getChest().getContents()) {
+            if (matches(i)) { room().getChest().getContents().remove(i); return i; }
+        }
+        return null;
+    }
 ```
 
-**Ignoring the collection each one walks, how many lines actually differ?** ______
+**Ignoring the collection each one walks, how many lines actually differ?** 1 — the `if (!room().hasChest()) return null;` guard.
 
 **Now play the game.** `mvn -q exec:java`, then: go north, kill whatever is there, `look`,
 `take <the chest's name>`.
@@ -76,14 +108,16 @@ Open `commands/TakeCommand.java`. Put `takeFromFloor()` and `takeFromChest()` si
 **Paste those four lines of output:**
 
 ```
-
+✍️ YOUR WORDS: paste from the old game: north, fight, look, take iron-bound
 ```
 
 **The game listed a chest, let you take something out of it, and then said it does not exist.
 Which of those three statements is false?**
 
+> The third — "There is nothing like that here." ✍️ YOUR WORDS: (why)
 
-**Open `items/Chest.java` and read the comment at the top. When was it written?** ______
+
+**Open `items/Chest.java` and read the comment at the top. When was it written?** Week 4 — *"Note it is NOT an Item. In Week 13 it becomes part of a COMPOSITE..."*
 
 ---
 
@@ -98,13 +132,13 @@ $C src/main/java/dungeonforge/items/Chest.java | grep -c 'implements Item'
 
 | | Before | After |
 |---|---|---|
-| files that know a room has two containers | | |
-| collections a `Room` keeps items in | | |
-| search methods in `TakeCommand` | | |
-| `Chest` is an `Item` (yes/no) | | |
-| files that sum item weight | | |
-| `take <chest>` works (yes/no) | | |
-| `totalLoot()` after dropping two items | | |
+| files that know a room has two containers | 6 | 0 |
+| collections a `Room` keeps items in | 2 | 1 |
+| search methods in `TakeCommand` | 2 | 0 |
+| `Chest` is an `Item` (yes/no) | no | yes |
+| files that sum item weight | 0 | 2 (`Player`, `TakeCommand`) |
+| `take <chest>` works (yes/no) | no | yes |
+| `totalLoot()` after dropping two items | unchanged (floor not counted) | +2 |
 
 *(After column at the end of the sprint. **Nothing in it may be a guess.**)*
 
@@ -114,14 +148,14 @@ $C src/main/java/dungeonforge/items/Chest.java | grep -c 'implements Item'
 
 Finish US-10.2, then play the game again and try `take <the chest's name>`.
 
-**What happened?** ______
+**What happened?** "There is nothing like that here." ✍️ YOUR WORDS: (confirm by playing commit `ad8ad66`, or from the Part B video)
 
 **Complete this sentence:**
 
-> A chest is an `Item` now and I still cannot pick one up, because ______________________________
+> A chest is an `Item` now and I still cannot pick one up, because ✍️ YOUR WORDS: 
 
 
-**Which story owns that, and which of its acceptance criteria?** ______
+**Which story owns that, and which of its acceptance criteria?** US-10.3 — AC7 (and AC2, pre-order).
 
 ---
 
@@ -138,45 +172,72 @@ mvn test
 **Paste all three.**
 
 ```
-
+$ ls src/main/java/dungeonforge/core/RoomContentsIterator.java
+ls: cannot access 'src/main/java/dungeonforge/core/RoomContentsIterator.java': No such file or directory
+$ grep -rl 'RoomContentsIterator' src/
+(no file names it)
+$ mvn test
+[INFO] Tests run: 184, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
 ```
 
 **US-10.1's tests were written against a class that no longer exists, and they still pass. In one
 sentence: what were they actually asserting?**
 
+> ✍️ YOUR WORDS: 
+
 
 ### The bug nobody reported
 
-**Read the version of `totalLoot()` you started the week with. What did it count?** ______
+**Read the version of `totalLoot()` you started the week with. What did it count?**
 
-**What did it NOT count?** ______
+```java
+    public int totalLoot() {
+        int n = 0;
+        for (DungeonLevel l : levels) {
+            for (Room r : l.getRooms()) {
+                if (r.hasChest()) n += r.getChest().getContents().size();
+            }
+        }
+        return n;
+    }
+```
 
-**Why was that invisible?** ______
+Only the contents of each room's chest.
+
+**What did it NOT count?** Anything lying on the floor.
+
+**Why was that invisible?** ✍️ YOUR WORDS: 
 
 **Paste your before-and-after measurement** — `totalLoot()` with nothing on the floor, then after
 dropping two items.
 
 ```
-
+IteratorCompositeTest.countingLootNoLongerForgetsTheFloor  -- PASS
+  int atGeneration = world.totalLoot();
+  (drop "Dropped A" and "Dropped B" on the starting room's floor)
+  assertEquals(atGeneration + 2, world.totalLoot());
 ```
 
 **One sentence, and be careful with it: did Iterator FIND this bug?** *(There is a wrong answer
 that sounds good.)*
+
+> ✍️ YOUR WORDS: 
 
 
 ---
 
 ## 6. AFTER — what an iterator cannot do
 
-**After US-10.1, how many files still knew a room had two containers?** ______
+**After US-10.1, how many files still knew a room had two containers?** 4 — `Room` itself, plus `TurnSnapshot`, `RoomPopulator`, `CommandParser`.
 
 **Name them, and for each one say why `Room.contents()` could not serve it:**
 
 | File | Why not |
 |---|---|
-| | |
-| | |
-| | |
+| `TurnSnapshot` | ✍️ YOUR WORDS:  |
+| `RoomPopulator` | ✍️ YOUR WORDS:  |
+| `CommandParser` (`describeRoom`) | ✍️ YOUR WORDS:  |
 
 **One of those three still reads the room's collections directly in your finished code. Which,
 and is that a failure to finish the refactor? Answer yes or no and defend it.**
@@ -213,7 +274,7 @@ this codebase?**
 
 ### Leaves
 
-**How many Leaf classes did you change this week?** ______
+**How many Leaf classes did you change this week?** 0
 
 **One sentence on what that number says about the pattern.**
 
