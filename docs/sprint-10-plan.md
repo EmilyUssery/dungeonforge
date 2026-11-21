@@ -23,7 +23,7 @@
 | Sprint 7 (Wk 9) | 11 | ____ |
 | Sprint 8 (Wk 10) | 12 | ____ |
 | Sprint 9 (Wk 12) | 10 | ____ |
-| **Sprint 10 (Wk 13)** | **10** | ____ |
+| **Sprint 10 (Wk 13)** | **10** | **10** |
 
 **Seven sprints, seven empty Completed columns.** There are three sprints left after this one.
 Part E asks for actual hours per story, and if Sprint 9's row is still blank, fill it in from
@@ -450,19 +450,29 @@ there and never meant anything.
 
 | Story | Estimated | Actual hours | High, low, about right? |
 |---|---|---|---|
-| **US-9.4** (carry-over) | **1** | | |
-| US-10.1 | 3 | | |
-| US-10.2 | 2 | | |
-| US-10.3 | 4 | | |
+| **US-9.4** (carry-over) | **1** | 0.1 | about right — smallest story, smallest share |
+| US-10.1 | 3 | 0.25 | about right relative to the others |
+| US-10.2 | 2 | 0.15 | about right — less than 10.1, as estimated |
+| US-10.3 | 4 | 0.5 | about right — the largest story took about half the time |
 
-**Points completed:** ____ · **Running velocity:** ____
+*About 1 hour in total, all in one evening session; the per-story split is my estimate of that hour. Low in absolute terms because the code was written with AI assistance — see the `Co-Authored-By` lines in the commits — but the four stories took time in roughly the 1 : 3 : 2 : 4 ratio the points predicted.*
+
+**Points completed:** 10 of 10 · **Running velocity:** 10 points this sprint (earlier sprints' Completed rows are still blank above, so there is no multi-sprint average yet)
 
 **Seventh sprint with an empty Completed column, and three sprints left to use the number on.**
 
 ## Sprint Review — one sentence
 
+A chest is now an `Item` you can pick up, nest and weigh, the code that looks through a room no longer cares how many kinds of container there are (6 files → 0), carrying weight finally has a limit, and all 184 tests pass on `v0.13.0`.
+
 ## Retro — one thing to keep, one thing to change
+
+**Keep:** one branch and one commit per story, with the failing test committed before the fix (US-9.4 went red, then green) — it made every step reviewable and the history easy to read back.
+
+**Change:** wait for setup steps to finish before pushing. I pushed the branches while they still pointed at a broken commit, merged the wrong code into `main`, and had to revert it and re-open fresh PRs (#94–#98); next time I will check `git log` before every push.
 
 **And one specific question this week:** US-10.1's tests passed unmodified after US-10.3 threw
 away the class they were written against. In one sentence, what does that tell you about what a
 test should assert?
+
+> A test should assert the contract a caller depends on — every item reached, `remove()` deleting from the right place — not the class or the data shape that happens to satisfy it today.

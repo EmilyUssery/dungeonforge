@@ -240,7 +240,7 @@ IteratorCompositeTest.countingLootNoLongerForgetsTheFloor  -- PASS
 **One sentence, and be careful with it: did Iterator FIND this bug?** *(There is a wrong answer
 that sounds good.)*
 
-> No — the pattern did not find it; I found it by reading `totalLoot()` before rewriting it, and writing the walk once (instead of once per collection) is what fixed it.
+> No — the pattern did not find it; reading `totalLoot()` before rewriting it found it, and writing the walk once (instead of once per collection) is what fixed it.
 
 
 ---
