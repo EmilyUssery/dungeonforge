@@ -1,0 +1,520 @@
+classDiagram
+    direction LR
+
+%% =========================================================
+%% STYLING
+%% =========================================================
+
+classDef simpleFactory fill:#dbeafe,stroke:#2563eb,stroke-width:3px,color:#111827
+classDef factoryMethod fill:#dcfce7,stroke:#16a34a,stroke-width:3px,color:#111827
+classDef abstractFactory fill:#f3e8ff,stroke:#9333ea,stroke-width:3px,color:#111827
+classDef singleton fill:#ffedd5,stroke:#ea580c,stroke-width:3px,color:#111827
+classDef core fill:#f8fafc,stroke:#64748b,stroke-width:1.5px,color:#111827
+classDef item fill:#fef9c3,stroke:#ca8a04,stroke-width:1.5px,color:#111827
+classDef data fill:#f1f5f9,stroke:#475569,stroke-width:1.5px,color:#111827
+classDef utility fill:#e0f2fe,stroke:#0284c7,stroke-width:1.5px,color:#111827
+
+%% =========================================================
+%% CORE DOMAIN
+%% =========================================================
+
+namespace CORE {
+class Entity {
+<<abstract>>
+#String name
+#int hp
+#int maxHp
+#int attackPower
+#int defense
+#Entity(String name, int maxHp, int attackPower, int defense)
++String getName()
++int getHp()
++int getMaxHp()
++int getAttackPower()
++int getDefense()
++boolean isAlive()
++void takeDamage(int amount)
++void heal(int amount)
++String describe()*
++String toString()
+}
+
+class Player {
+-int gold
+-int xp
++Player(String name)
++int getGold()
++int getXp()
++void addGold(int g)
++void addXp(int x)
++double carryCapacity()
++String describe()
+}
+
+class Monster {
+-String species
+-int xpReward
++Monster(String species, int baseHp, int baseAttack, int xpReward)
++String getSpecies()
++int getXpReward()
++String describe()
+}
+
+class Room {
+-String id
+-String flavor
+-List~Monster~ monsters
+-List~Item~ floorItems
+-Chest chest
++Room(String id)
++String getId()
++String getFlavor()
++void setFlavor(String f)
++List~Monster~ getMonsters()
++void addMonster(Monster m)
++List~Item~ getFloorItems()
++void addItem(Item i)
++Chest getChest()
++void setChest(Chest c)
++boolean hasChest()
+}
+
+class DungeonLevel {
+-int depth
+-String themeName
+-List~Room~ rooms
++DungeonLevel(int depth, String themeName)
++int getDepth()
++String getThemeName()
++List~Room~ getRooms()
++void addRoom(Room r)
+}
+
+class GameWorld {
+-Player player
+-MonsterFactory monsterFactory
+-ThemeRegistry themes
+-List~DungeonLevel~ levels
++GameWorld(Player player)
+-void generate()
+-RoomPopulator populateFor(ThemeKit theme, boolean isFinalRoom)
++Player getPlayer()
++List~DungeonLevel~ getLevels()
++MonsterFactory getMonsterFactory()
++ThemeRegistry getThemes()
++int totalMonsters()
+}
+    }
+
+Entity <|-- Player
+Entity <|-- Monster
+
+GameWorld "1" --> "1" Player : owns
+GameWorld "1" *-- "*" DungeonLevel : creates
+DungeonLevel "1" *-- "*" Room : contains
+Room "1" *-- "*" Monster : contains
+Room "1" *-- "*" Item : floor items
+Room "1" o-- "0..1" Chest : contains
+
+
+%% =========================================================
+%% SIMPLE FACTORY
+%% =========================================================
+
+namespace SIMPLE_FACTORY {
+class MonsterFactory {
+<<Simple Factory>>
+-Map~String, MonsterDef~ blueprints
++MonsterFactory()
+-void loadFrom(String resourceName)
++void register(MonsterDef def)
++Monster create(String id, int depth)
++List~String~ idsForTheme(String name)
++String bossIdFromTheme(String name)
++boolean has(String id)
++int blueprintCount()
+}
+
+class MonsterDef {
+-String id
+-String name
+-int hp
+-int attack
+-int xp
+-String theme
+-boolean boss
++MonsterDef(String id, String name, int hp, int attack, int xp, String theme)
++MonsterDef(String id, String name, int hp, int attack, int xp, String theme, boolean boss)
++String getId()
++String getName()
++int getHp()
++int getAttack()
++int getXp()
++String getTheme()
++boolean isBoss()
++String toString()
+}
+    }
+
+MonsterFactory --> MonsterDef : reads blueprints
+MonsterFactory ..> Monster : <<creates>>
+MonsterFactory ..> RandomSource : uses
+MonsterFactory ..> GameConfig : loads data through
+MonsterFactory ..> Json : parses JSON
+
+MonsterDef --> Monster : blueprint for
+
+
+%% =========================================================
+%% FACTORY METHOD
+%% =========================================================
+
+namespace FACTORY_METHOD {
+class RoomPopulator {
+<<abstract>>
+<<Factory Method>>
+#ThemeKit theme
+#RoomPopulator(ThemeKit theme)
++final void populate(Room room, int depth)
+#List~Monster~ createEncounter(int depth)*
+#Chest createChest(int depth)
++String kind()*
+}
+
+class StandardRoomPopulator {
++StandardRoomPopulator(ThemeKit theme)
++String kind()
+#List~Monster~ createEncounter(int depth)
+}
+
+class TreasureRoomPopulator {
++TreasureRoomPopulator(ThemeKit theme)
++String kind()
+#List~Monster~ createEncounter(int depth)
+#Chest createChest(int depth)
+}
+
+class BossRoomPopulator {
++BossRoomPopulator(ThemeKit theme)
++String kind()
+#List~Monster~ createEncounter(int depth)
+#Chest createChest(int depth)
+}
+    }
+
+RoomPopulator <|-- StandardRoomPopulator
+RoomPopulator <|-- TreasureRoomPopulator
+RoomPopulator <|-- BossRoomPopulator
+
+RoomPopulator o-- ThemeKit : uses theme
+
+RoomPopulator ..> Room : populates
+RoomPopulator ..> Monster : creates encounter
+RoomPopulator ..> Chest : optionally creates
+StandardRoomPopulator ..> GameConfig : reads limits
+StandardRoomPopulator ..> RandomSource : random count
+TreasureRoomPopulator ..> RandomSource : random loot count
+BossRoomPopulator ..> Monster : boss + guard
+
+
+%% =========================================================
+%% ABSTRACT FACTORY
+%% =========================================================
+
+namespace ABSTRACT_FACTORY {
+class ThemeKit {
+<<interface>>
+<<Abstract Factory>>
++String themeName()
++Monster createMonster(int depth)
++Monster createBoss(int depth)
++Item createLoot(int depth)
++String createRoomFlavor()
+}
+
+class CryptThemeKit {
+<<Concrete Factory>>
+-MonsterFactory factory
+-String[] FLAVORS
++CryptThemeKit(MonsterFactory factory)
++String themeName()
++Monster createMonster(int depth)
++Monster createBoss(int depth)
++Item createLoot(int depth)
++String createRoomFlavor()
+}
+
+class ForgeThemeKit {
+<<Concrete Factory>>
+-MonsterFactory factory
+-String[] FLAVORS
++ForgeThemeKit(MonsterFactory factory)
++String themeName()
++Monster createMonster(int depth)
++Monster createBoss(int depth)
++Item createLoot(int depth)
++String createRoomFlavor()
+}
+
+class FrostThemeKit {
+<<Concrete Factory>>
+-MonsterFactory factory
+-String[] FLAVORS
++FrostThemeKit(MonsterFactory factory)
++String themeName()
++Monster createMonster(int depth)
++Monster createBoss(int depth)
++Item createLoot(int depth)
++String createRoomFlavor()
+}
+
+class WinterfellThemeKit {
+<<Concrete Factory>>
+-MonsterFactory factory
+-String[] FLAVORS
++WinterfellThemeKit(MonsterFactory factory)
++String themeName()
++Monster createMonster(int depth)
++Monster createBoss(int depth)
++Item createLoot(int depth)
++String createRoomFlavor()
+}
+    }
+
+ThemeKit <|.. CryptThemeKit
+ThemeKit <|.. ForgeThemeKit
+ThemeKit <|.. FrostThemeKit
+ThemeKit <|.. WinterfellThemeKit
+
+CryptThemeKit --> MonsterFactory : delegates monster creation
+ForgeThemeKit --> MonsterFactory : delegates monster creation
+FrostThemeKit --> MonsterFactory : delegates monster creation
+WinterfellThemeKit --> MonsterFactory : delegates monster creation
+
+CryptThemeKit ..> Monster : creates via factory
+ForgeThemeKit ..> Monster : creates via factory
+FrostThemeKit ..> Monster : creates via factory
+WinterfellThemeKit ..> Monster : creates via factory
+
+CryptThemeKit ..> Weapon : creates loot
+CryptThemeKit ..> Armor : creates loot
+CryptThemeKit ..> Potion : creates loot
+CryptThemeKit ..> Treasure : creates loot
+
+ForgeThemeKit ..> Weapon : creates loot
+ForgeThemeKit ..> Armor : creates loot
+ForgeThemeKit ..> Potion : creates loot
+ForgeThemeKit ..> Treasure : creates loot
+
+FrostThemeKit ..> Weapon : creates loot
+FrostThemeKit ..> Armor : creates loot
+FrostThemeKit ..> Potion : creates loot
+FrostThemeKit ..> Treasure : creates loot
+
+WinterfellThemeKit ..> Weapon : creates loot
+WinterfellThemeKit ..> Armor : creates loot
+WinterfellThemeKit ..> Potion : creates loot
+WinterfellThemeKit ..> Treasure : creates loot
+
+CryptThemeKit ..> RandomSource : uses
+ForgeThemeKit ..> RandomSource : uses
+FrostThemeKit ..> RandomSource : uses
+WinterfellThemeKit ..> RandomSource : uses
+
+
+%% =========================================================
+%% THEME REGISTRY
+%% =========================================================
+
+class ThemeRegistry {
+-List~ThemeKit~ kits
++ThemeRegistry(MonsterFactory factory)
++ThemeKit forDepth(int depth)
++int size()
++List~String~ themeName()
+}
+
+ThemeRegistry "1" *-- "4" ThemeKit : registers
+ThemeRegistry ..> CryptThemeKit : creates
+ThemeRegistry ..> ForgeThemeKit : creates
+ThemeRegistry ..> FrostThemeKit : creates
+ThemeRegistry ..> WinterfellThemeKit : creates
+ThemeRegistry --> MonsterFactory : supplies to kits
+
+
+%% =========================================================
+%% SINGLETONS
+%% =========================================================
+
+namespace SINGLETONS {
+class GameConfig {
+<<Singleton>>
+-static GameConfig instance
+-Map~String,Object~ settings
+-GameConfig()
++static synchronized GameConfig getInstance()
+-void loadDefaults()
+-void loadFromClasspath(String resourceName)
++static String readResource(String resourceName)
++int getInt(String key)
++double getDouble(String key)
++long getSeed()
++static void resetForTests()
+}
+
+class RandomSource {
+<<Singleton>>
+-static RandomSource instance
+-Random rng
+-long seed
+-RandomSource()
++static synchronized RandomSource getInstance()
++int nextInt(int bound)
++int between(int lo, int hi)
++double nextDouble()
++T pick(List~T~ options)
++T pick(T[] options)
++long getSeed()
++void reseed(long newSeed)
++static void resetForTests()
+}
+    }
+
+GameConfig ..> Json : parses config.json
+RandomSource --> GameConfig : gets initial seed
+
+GameConfig ..> GameConfig : <<single instance>>
+RandomSource ..> RandomSource : <<single instance>>
+
+GameWorld ..> GameConfig : getInstance()
+GameWorld ..> RandomSource : getInstance()
+
+Player ..> GameConfig : getInstance()
+Monster ..> RandomSource : getInstance()
+
+StandardRoomPopulator ..> GameConfig : getInstance()
+StandardRoomPopulator ..> RandomSource : getInstance()
+
+CryptThemeKit ..> RandomSource : getInstance()
+ForgeThemeKit ..> RandomSource : getInstance()
+FrostThemeKit ..> RandomSource : getInstance()
+WinterfellThemeKit ..> RandomSource : getInstance()
+
+
+%% =========================================================
+%% ITEMS
+%% =========================================================
+
+namespace ITEMS {
+class Item {
+<<interface>>
++String getName()
++double getWeight()
++int getValue()
++String describe()
+}
+
+class Weapon {
+-String name
+-double weight
+-int value
+-int damage
++Weapon(String name, double weight, int value, int damage)
++String getName()
++double getWeight()
++int getValue()
++int getDamage()
++String describe()
+}
+
+class Armor {
+-String name
+-double weight
+-int value
+-int defense
++Armor(String name, double weight, int value, int defense)
++String getName()
++double getWeight()
++int getValue()
++int getDefense()
++String describe()
+}
+
+class Potion {
+-String name
+-double weight
+-int value
+-int healAmount
++Potion(String name, double weight, int value, int healAmount)
++String getName()
++double getWeight()
++int getValue()
++int getHealAmount()
++String describe()
+}
+
+class Treasure {
+-String name
+-double weight
+-int value
++Treasure(String name, double weight, int value)
++String getName()
++double getWeight()
++int getValue()
+}
+
+class Chest {
+-String name
+-List~Item~ contents
++Chest(String name)
++String getName()
++List~Item~ getContents()
++void add(Item item)
++boolean isEmpty()
++int totalValue()
+}
+    }
+
+Item <|.. Weapon
+Item <|.. Armor
+Item <|.. Potion
+Item <|.. Treasure
+
+Chest "1" *-- "*" Item : contains
+
+
+%% =========================================================
+%% JSON / ENTRY POINT
+%% =========================================================
+
+namespace SUPPORT {
+class Json {
+<<utility>>
+-String s
+-int i
+-Json(String s)
++static Map~String,Object~ parseObject(String text)
+-void ws()
+-Object value()
+-Map~String,Object~ object()
+-List~Object~ array()
+-String string()
+-Double number()
+}
+
+class Main {
+<<application>>
++static String VERSION
+-Main()
++static String banner()
++static void main(String[] args)
+}
+    }
+
+Main ..> GameWorld : creates
+Main ..> Player : creates
+Main ..> GameConfig : reads
+Main ..> RandomSource : reseeds
+Main ..> DungeonLevel : displays
+Main ..> Room : displays
+Main ..> Monster : displays

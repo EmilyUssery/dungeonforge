@@ -1,0 +1,209 @@
+From 4fb336c85ce8b61501c4d5a9bebc1e3e94f0c080 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 20 Nov 2026 19:02:39 -0800
+Subject: [PATCH 3/4] US-10.2: a chest is an Item (Composite)
+
+- Item gains default children() and isContainer(); no add() on the Component
+- Chest implements Item: 5.0kg tare, weight/value roll up through any depth
+- add() rejects the chest itself; remove(Item); describe(); totalValue deprecated
+- IteratorCompositeTest gains the US-10.2 section
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_019UKquNsPhGiV4vsiZoUekR
+---
+ src/main/java/dungeonforge/items/Chest.java   | 55 ++++++++++++---
+ src/main/java/dungeonforge/items/Item.java    | 12 ++++
+ .../dungeonforge/IteratorCompositeTest.java   | 70 +++++++++++++++++++
+ 3 files changed, 128 insertions(+), 9 deletions(-)
+
+diff --git a/src/main/java/dungeonforge/items/Chest.java b/src/main/java/dungeonforge/items/Chest.java
+index afa0b94..17202da 100644
+--- a/src/main/java/dungeonforge/items/Chest.java
++++ b/src/main/java/dungeonforge/items/Chest.java
+@@ -1,29 +1,66 @@
+ package dungeonforge.items;
+ 
+ import java.util.ArrayList;
++import java.util.Iterator;
+ import java.util.List;
+ 
+ /**
+  * WEEK 4 -- a container of loot, placed by a TreasureRoomPopulator or BossRoomPopulator.
+- *
+- * Note it is NOT an Item. In Week 13 it becomes part of a COMPOSITE and that changes, but
+- * building for that now would be guessing at a design you have not been taught yet.
++ * WEEK 13 (US-10.2) -- the COMPOSITE. A chest is an Item that holds Items, so it has a weight,
++ * a value, and a type the inventory accepts. add() lives here and NOT on Item: a leaf has no
++ * honest add(), so the Component does not promise one (the "safety" side of the trade).
+  */
+-public class Chest {
++public class Chest implements Item {
++
++    /** The box itself. Every chest weighs this much empty. */
++    private static final double TARE_WEIGHT_KG = 5.0;
+ 
+     private final String name;
+     private final List<Item> contents = new ArrayList<>();
+ 
+     public Chest(String name) { this.name = name; }
+ 
+-    public String getName()        { return name; }
+-    public List<Item> getContents() { return contents; }
+-    public void add(Item item)     { contents.add(item); }
+-    public boolean isEmpty()       { return contents.isEmpty(); }
++    @Override public String getName() { return name; }
++    public List<Item> getContents()   { return contents; }
++    public boolean isEmpty()          { return contents.isEmpty(); }
++
++    public void add(Item item) {
++        if (item == this) throw new IllegalArgumentException("A chest cannot contain itself.");
++        contents.add(item);
++    }
++
++    public boolean remove(Item item) { return contents.remove(item); }
+ 
+-    public int totalValue() {
++    /**
++     * The tare plus each DIRECT child's weight. No hand-written recursion: a nested chest's
++     * getWeight() already includes its own contents, so asking each child once is the whole job.
++     */
++    @Override
++    public double getWeight() {
++        double sum = TARE_WEIGHT_KG;
++        for (Item i : contents) sum += i.getWeight();
++        return sum;
++    }
++
++    /** The children's value. The box itself is not treasure. */
++    @Override
++    public int getValue() {
+         int sum = 0;
+         for (Item i : contents) sum += i.getValue();
+         return sum;
+     }
++
++    /** Direct contents only. Walking the whole tree is CompositeIterator's job (US-10.3). */
++    @Override
++    public Iterator<Item> children() { return contents.iterator(); }
++
++    @Override
++    public String describe() {
++        return name + " (" + String.format("%.1f", getWeight()) + "kg, " + getValue() + "g, "
++                + contents.size() + " item" + (contents.size() == 1 ? "" : "s") + ")";
++    }
++
++    /** @deprecated duplicates {@link #getValue()} now that a chest is an Item. */
++    @Deprecated
++    public int totalValue() { return getValue(); }
+ }
+diff --git a/src/main/java/dungeonforge/items/Item.java b/src/main/java/dungeonforge/items/Item.java
+index c7484d0..36ee372 100644
+--- a/src/main/java/dungeonforge/items/Item.java
++++ b/src/main/java/dungeonforge/items/Item.java
+@@ -1,5 +1,8 @@
+ package dungeonforge.items;
+ 
++import java.util.Collections;
++import java.util.Iterator;
++
+ /**
+  * WEEK 4 -- introduced so that a ThemeKit has loot to hand back.
+  *
+@@ -11,6 +14,15 @@ public interface Item {
+     double getWeight();
+     int getValue();
+ 
++    /**
++     * WEEK 13 (US-10.2) -- COMPOSITE. Traversal belongs on the Component; mutation does not.
++     * A leaf has no children, and these defaults mean no leaf class had to change.
++     */
++    default Iterator<Item> children() { return Collections.emptyIterator(); }
++
++    /** True when this item holds something right now. An empty chest says false, honestly. */
++    default boolean isContainer() { return children().hasNext(); }
++
+     default String describe() {
+         return getName() + " (" + String.format("%.1f", getWeight()) + "kg, " + getValue() + "g)";
+     }
+diff --git a/src/test/java/dungeonforge/IteratorCompositeTest.java b/src/test/java/dungeonforge/IteratorCompositeTest.java
+index cf363dd..6d9a800 100644
+--- a/src/test/java/dungeonforge/IteratorCompositeTest.java
++++ b/src/test/java/dungeonforge/IteratorCompositeTest.java
+@@ -183,4 +183,74 @@ class IteratorCompositeTest {
+               + "loose on a floor, so the missing branch was invisible until a player dropped "
+               + "something. Writing the walk ONCE is what fixed it -- not the pattern.");
+     }
++
++    // ===================== US-10.2 : the COMPOSITE =====================
++
++    @Test
++    void aChestIsAnItem() {
++        assertInstanceOf(Item.class, new Chest("Strongbox"));
++    }
++
++    @Test
++    void weightAndValueRollUpThroughOneLevel() {
++        Chest c = new Chest("Strongbox");
++        c.add(potion("P"));                 // 0.4kg, 25g
++        c.add(coin("C"));                   // 0.1kg, 5g
++        assertEquals(5.5, c.getWeight(), 0.001, "5.0 tare + 0.4 + 0.1");
++        assertEquals(30, c.getValue(),           "25 + 5; the box itself is not treasure");
++    }
++
++    @Test
++    void weightAndValueRollUpThroughNesting() {
++        Chest inner = new Chest("Inner");
++        inner.add(potion("P"));             // 0.4 / 25
++        Chest outer = new Chest("Outer");
++        outer.add(inner);
++        outer.add(coin("C"));               // 0.1 / 5
++
++        assertEquals(5.0 + (5.0 + 0.4) + 0.1, outer.getWeight(), 0.001,
++                "the outer tare, the inner chest's own total, and the loose coin");
++        assertEquals(30, outer.getValue(), "value passes straight through the nesting");
++    }
++
++    @Test
++    void anEmptyChestStillWeighsSomething() {
++        assertEquals(5.0, new Chest("Empty").getWeight(), 0.001,
++                "a chest is a thing, not just a label for its contents");
++        assertEquals(0, new Chest("Empty").getValue());
++    }
++
++    @Test
++    void aChestCanBeCarriedLikeAnythingElse() {
++        Chest c = new Chest("Strongbox");
++        c.add(potion("P"));
++        player.addItem(c);
++        assertTrue(player.getInventory().contains(c));
++    }
++
++    @Test
++    void aChestCannotContainItself() {
++        Chest c = new Chest("Strongbox");
++        assertThrows(IllegalArgumentException.class, () -> c.add(c));
++    }
++
++    @Test
++    void leavesHaveNoChildrenAndTheCompositeDoes() {
++        assertFalse(potion("P").children().hasNext(), "a potion contains nothing");
++        assertFalse(potion("P").isContainer());
++        Chest c = new Chest("Strongbox");
++        assertFalse(c.isContainer(), "an EMPTY chest holds nothing, and says so");
++        c.add(potion("P"));
++        assertTrue(c.isContainer());
++    }
++
++    @Test
++    void theComponentDeclaresNoMutationItCannotHonour() throws Exception {
++        String code = source("items/Item.java");
++        assertFalse(code.contains("void add("),
++                "Head First puts add() on the Component and lets leaves throw (p. 364). We "
++              + "did not. The cost is that you cannot call add() against an Item, and D2 of "
++              + "the clinic asks you to defend that trade.");
++        assertTrue(code.contains("children()"), "traversal belongs on the Component");
++    }
+ }
+-- 
+2.43.0
+

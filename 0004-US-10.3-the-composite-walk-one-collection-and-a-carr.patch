@@ -1,0 +1,820 @@
+From 9e70856eaf2a344801f20e1137ec341e9efeb0d0 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 20 Nov 2026 19:03:55 -0800
+Subject: [PATCH 4/4] US-10.3: the composite walk, one collection, and a carry
+ limit
+
+- CompositeIterator: stack of iterators, pre-order, remove() pops a removed box's children
+- Room: chest field and getChest/setChest/hasChest gone; getChests(); contents() is the composite walk
+- RoomPopulator puts the chest on the floor; RoomContentsIterator deleted
+- TurnSnapshot records every container's contents in an IdentityHashMap (undo at any depth)
+- Player.carriedWeight()/canCarry(); live carried weight on the status line
+- TakeCommand refuses an over-capacity take before anything moves
+- CommandParser: loot targets the top level; describeRoom lists chests and their children
+- Chest.directCount(); repaired CommandTest/FactoryTest and the full IteratorCompositeTest
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_019UKquNsPhGiV4vsiZoUekR
+---
+ .../dungeonforge/commands/CommandParser.java  |  23 +-
+ .../dungeonforge/commands/TakeCommand.java    |  35 +--
+ .../dungeonforge/commands/TurnSnapshot.java   |  17 +-
+ .../dungeonforge/core/CompositeIterator.java  |  63 +++++
+ src/main/java/dungeonforge/core/Player.java   |  17 +-
+ src/main/java/dungeonforge/core/Room.java     |  18 +-
+ .../core/RoomContentsIterator.java            |  58 -----
+ .../dungeonforge/factory/RoomPopulator.java   |   2 +-
+ src/main/java/dungeonforge/items/Chest.java   |   3 +
+ src/test/java/dungeonforge/CommandTest.java   |  22 +-
+ src/test/java/dungeonforge/FactoryTest.java   |  10 +-
+ .../dungeonforge/IteratorCompositeTest.java   | 223 ++++++++++++++++--
+ 12 files changed, 367 insertions(+), 124 deletions(-)
+ create mode 100644 src/main/java/dungeonforge/core/CompositeIterator.java
+ delete mode 100644 src/main/java/dungeonforge/core/RoomContentsIterator.java
+
+diff --git a/src/main/java/dungeonforge/commands/CommandParser.java b/src/main/java/dungeonforge/commands/CommandParser.java
+index b460d33..115affc 100644
+--- a/src/main/java/dungeonforge/commands/CommandParser.java
++++ b/src/main/java/dungeonforge/commands/CommandParser.java
+@@ -6,6 +6,7 @@ import dungeonforge.core.Room;
+ import dungeonforge.events.AchievementSystem;
+ import dungeonforge.events.Quest;
+ import dungeonforge.events.QuestTracker;
++import dungeonforge.items.Chest;
+ import dungeonforge.items.Item;
+ import dungeonforge.states.GameOverState;
+ 
+@@ -178,9 +179,11 @@ public class CommandParser {
+     /** WEEK 7 -- assembles a MACRO COMMAND at parse time from whatever is in the room. */
+     private static Command makeLootMacro(GameContext ctx) {
+         Room room = ctx.getCurrentRoom();
+-        // WEEK 13 (US-10.1): one walk instead of two collections.
+-        List<Item> targets = new ArrayList<>();
+-        for (Item i : room.asContents()) targets.add(i);
++        // WEEK 13 (US-10.3): the TOP LEVEL, not the whole tree. A chest carries its own
++        // contents, so walking into it would queue takes for items that leave with the box.
++        // The composite iterator is a tool, not an obligation. (A copy, so the takes below
++        // can change the floor without disturbing this list.)
++        List<Item> targets = new ArrayList<>(room.getFloorItems());
+ 
+         if (targets.isEmpty()) {
+             return new NoCommand(ctx.getBus(), "There is nothing here to loot.");
+@@ -205,10 +208,16 @@ public class CommandParser {
+                 if (m.isAlive()) b.append(" ").append(m.describe());
+             }
+         }
+-        for (Item i : room.getFloorItems()) b.append("\n  On the floor: ").append(i.describe());
+-        if (room.hasChest()) {
+-            b.append("\n  ").append(room.getChest().getName()).append(":");
+-            for (Item i : room.getChest().getContents()) b.append("\n    - ").append(i.describe());
++        // WEEK 13 (US-10.3): description DOES care which things are boxes.
++        for (Item i : room.getFloorItems()) {
++            if (i instanceof Chest) continue;
++            b.append("\n  On the floor: ").append(i.describe());
++        }
++        for (Chest c : room.getChests()) {
++            b.append("\n  ").append(c.describe()).append(":");
++            for (java.util.Iterator<Item> it = c.children(); it.hasNext(); ) {
++                b.append("\n    - ").append(it.next().describe());
++            }
+         }
+         b.append("\n  Exits: ").append(String.join(", ", room.getExits().keySet()));
+         return b.toString();
+diff --git a/src/main/java/dungeonforge/commands/TakeCommand.java b/src/main/java/dungeonforge/commands/TakeCommand.java
+index 0307e64..d64adca 100644
+--- a/src/main/java/dungeonforge/commands/TakeCommand.java
++++ b/src/main/java/dungeonforge/commands/TakeCommand.java
+@@ -3,7 +3,9 @@ package dungeonforge.commands;
+ import dungeonforge.events.GameEvent;
+ import dungeonforge.items.Item;
+ 
+-/** WEEK 7 -- COMMAND. Picks an item off the floor or out of a chest. */
++import java.util.Iterator;
++
++/** WEEK 7 -- COMMAND. Picks up an item: off the floor, out of a chest, or the chest itself. */
+ public class TakeCommand extends AbstractCommand {
+ 
+     public TakeCommand(GameContext ctx, String itemName) { super(ctx, itemName); }
+@@ -12,23 +14,26 @@ public class TakeCommand extends AbstractCommand {
+     protected boolean doExecute() {
+         // WEEK 13 (US-10.1): one walk, wherever the room keeps things. The iterator's
+         // remove() knows which collection the item came out of, so this class does not.
+-        Item found = null;
+-        for (java.util.Iterator<Item> it = room().contents(); it.hasNext(); ) {
++        // WEEK 13 (US-10.3): the walk is pre-order, so a chest matches before its contents.
++        for (Iterator<Item> it = room().contents(); it.hasNext(); ) {
+             Item candidate = it.next();
+-            if (matches(candidate)) {
+-                it.remove();
+-                found = candidate;
+-                break;
+-            }
+-        }
++            if (!matches(candidate)) continue;
+ 
+-        if (found == null) {
+-            bus().message("There is nothing like that here.");
+-            return false;
++            // Sixty kilograms that finally mean something. Checked BEFORE anything moves.
++            if (!player().canCarry(candidate)) {
++                bus().message(String.format(
++                        "The %s weighs %.1fkg and you are already carrying %.1f of %.1fkg.",
++                        candidate.getName(), candidate.getWeight(),
++                        player().carriedWeight(), player().carryCapacity()));
++                return false;
++            }
++            it.remove();
++            player().addItem(candidate);
++            bus().publish(GameEvent.message("You take " + candidate.getName() + "."));
++            return true;
+         }
+-        player().addItem(found);
+-        bus().publish(GameEvent.message("You take " + found.getName() + "."));
+-        return true;
++        bus().message("There is nothing like that here.");
++        return false;
+     }
+ 
+     private boolean matches(Item i) {
+diff --git a/src/main/java/dungeonforge/commands/TurnSnapshot.java b/src/main/java/dungeonforge/commands/TurnSnapshot.java
+index 29e38d7..703d020 100644
+--- a/src/main/java/dungeonforge/commands/TurnSnapshot.java
++++ b/src/main/java/dungeonforge/commands/TurnSnapshot.java
+@@ -4,6 +4,7 @@ import dungeonforge.behavior.CombatStrategy;
+ import dungeonforge.core.Monster;
+ import dungeonforge.core.Player;
+ import dungeonforge.core.Room;
++import dungeonforge.items.Chest;
+ import dungeonforge.items.Item;
+ import dungeonforge.items.Weapon;
+ import dungeonforge.states.MonsterState;
+@@ -38,7 +39,8 @@ public final class TurnSnapshot {
+     private final List<Item> inventory;
+     private final List<Monster> monsters;
+     private final List<Item> floorItems;
+-    private final List<Item> chestContents;
++    /** WEEK 13 (US-10.3): what EVERY container held, at any depth, keyed by identity. */
++    private final Map<Chest, List<Item>> chestContents = new IdentityHashMap<>();
+     private final Weapon equipped;
+ 
+     private final Map<Monster, Integer> monsterHp = new IdentityHashMap<>();
+@@ -58,8 +60,11 @@ public final class TurnSnapshot {
+ 
+         this.monsters = new ArrayList<>(room.getMonsters());
+         this.floorItems = new ArrayList<>(room.getFloorItems());
+-        this.chestContents = room.getChest() == null
+-                ? null : new ArrayList<>(room.getChest().getContents());
++        // The shallow copy above records WHICH objects were in the room. This records what each
++        // container HELD. The composite walk finds containers at any depth, so no recursion here.
++        for (java.util.Iterator<Item> it = room.contents(); it.hasNext(); ) {
++            if (it.next() instanceof Chest c) chestContents.put(c, new ArrayList<>(c.getContents()));
++        }
+ 
+         for (Monster m : room.getMonsters()) {
+             monsterHp.put(m, m.getHp());
+@@ -84,9 +89,9 @@ public final class TurnSnapshot {
+         room.getMonsters().addAll(monsters);          // brings back anything that fled
+         room.getFloorItems().clear();
+         room.getFloorItems().addAll(floorItems);
+-        if (chestContents != null && room.getChest() != null) {
+-            room.getChest().getContents().clear();
+-            room.getChest().getContents().addAll(chestContents);
++        for (Map.Entry<Chest, List<Item>> e : chestContents.entrySet()) {
++            e.getKey().getContents().clear();
++            e.getKey().getContents().addAll(e.getValue());
+         }
+ 
+         for (Map.Entry<Monster, Integer> e : monsterHp.entrySet()) {
+diff --git a/src/main/java/dungeonforge/core/CompositeIterator.java b/src/main/java/dungeonforge/core/CompositeIterator.java
+new file mode 100644
+index 0000000..e769aa0
+--- /dev/null
++++ b/src/main/java/dungeonforge/core/CompositeIterator.java
+@@ -0,0 +1,63 @@
++package dungeonforge.core;
++
++import dungeonforge.items.Item;
++
++import java.util.ArrayDeque;
++import java.util.Deque;
++import java.util.Iterator;
++import java.util.NoSuchElementException;
++
++/**
++ * WEEK 13 (US-10.3) -- ITERATOR over a COMPOSITE. Flattens a tree of items into one walk by
++ * keeping a STACK of iterators: one for each level we are currently inside.
++ *
++ * Pre-order: a container is handed out BEFORE its contents. That is what lets
++ * `take iron-bound` match the chest before it ever reaches the vial inside it.
++ */
++public class CompositeIterator implements Iterator<Item> {
++
++    private final Deque<Iterator<Item>> stack = new ArrayDeque<>();
++    /** The iterator that handed out the last element; remove() delegates to it. */
++    private Iterator<Item> lastUsed = null;
++    /** The children we pushed for that element, if it was a container. */
++    private Iterator<Item> descendedInto = null;
++
++    public CompositeIterator(Iterator<Item> top) {
++        stack.push(top);
++    }
++
++    @Override
++    public boolean hasNext() {
++        while (!stack.isEmpty() && !stack.peek().hasNext()) {
++            stack.pop();                         // this level is finished; climb back up
++        }
++        return !stack.isEmpty();
++    }
++
++    @Override
++    public Item next() {
++        if (!hasNext()) throw new NoSuchElementException();
++        Iterator<Item> top = stack.peek();       // peek, not pop: it may have more after this
++        Item item = top.next();
++        lastUsed = top;
++        descendedInto = null;
++        if (item.isContainer()) {
++            descendedInto = item.children();
++            stack.push(descendedInto);           // its contents come next
++        }
++        return item;                             // yield first: pre-order
++    }
++
++    @Override
++    public void remove() {
++        if (lastUsed == null) throw new IllegalStateException("remove() called before next()");
++        // If we stepped inside the box we are deleting, step back out first, or the walk keeps
++        // handing out items from a box that is gone.
++        if (descendedInto != null && stack.peek() == descendedInto) {
++            stack.pop();
++        }
++        lastUsed.remove();                       // removes from whichever level it came from
++        lastUsed = null;
++        descendedInto = null;
++    }
++}
+diff --git a/src/main/java/dungeonforge/core/Player.java b/src/main/java/dungeonforge/core/Player.java
+index a8c0383..03f5fd0 100644
+--- a/src/main/java/dungeonforge/core/Player.java
++++ b/src/main/java/dungeonforge/core/Player.java
+@@ -98,6 +98,21 @@ public class Player extends Entity {
+     public void addGold(int g)    { gold += g; }
+     public void addXp(int x)      { xp += x; }
+ 
++    /**
++     * WEEK 13 (US-10.3): what you are actually carrying. Top level only -- a chest's own
++     * getWeight() has already rolled up everything inside it.
++     */
++    public double carriedWeight() {
++        double sum = 0;
++        for (Item i : inventory) sum += i.getWeight();
++        return sum;
++    }
++
++    /** WEEK 13 (US-10.3): would picking this up keep you within capacity? */
++    public boolean canCarry(Item extra) {
++        return carriedWeight() + extra.getWeight() <= carryCapacity();
++    }
++
+     /** Backpack capacity in kilograms, from config. */
+     public double carryCapacity() {
+         return GameConfig.getInstance().getDouble("carryCapacity");
+@@ -111,7 +126,7 @@ public class Player extends Entity {
+         return name + "  HP " + hp + "/" + maxHp
+                 + "  ATK " + getAttackPower() + "  DEF " + defense
+                 + "  Gold " + gold + "  XP " + xp
+-                + "  Carry " + carryCapacity() + "kg"
++                + "  Carry " + String.format("%.1f/%.1f", carriedWeight(), carryCapacity()) + "kg"
+                 + (equippedWeapon == null ? "  (unarmed)" : "  wielding " + equippedWeapon.describe());
+     }
+ }
+diff --git a/src/main/java/dungeonforge/core/Room.java b/src/main/java/dungeonforge/core/Room.java
+index fa3f481..06ac47b 100644
+--- a/src/main/java/dungeonforge/core/Room.java
++++ b/src/main/java/dungeonforge/core/Room.java
+@@ -17,7 +17,6 @@ public class Room {
+     private String flavor;
+     private final List<Monster> monsters = new ArrayList<>();
+     private final List<Item> floorItems = new ArrayList<>();
+-    private Chest chest;
+     /** WEEK 7 (provided): where you can walk from here. Week 10's generators make this a real graph. */
+     private final Map<String, Room> exits = new LinkedHashMap<>();
+ 
+@@ -33,13 +32,20 @@ public class Room {
+     public void addMonster(Monster m)   { monsters.add(m); }
+     public List<Item> getFloorItems()   { return floorItems; }
+     public void addItem(Item i)         { floorItems.add(i); }
+-    public Chest getChest()             { return chest; }
+-    public void setChest(Chest c)       { this.chest = c; }
+-    public boolean hasChest()           { return chest != null && !chest.isEmpty(); }
+ 
+-    /** WEEK 13 (US-10.1): one walk over everything takeable, wherever the room keeps it. */
++    /**
++     * WEEK 13 (US-10.3): the containers lying in this room. A chest is an Item now, so it
++     * lives on the floor with everything else; this answers "which of those are boxes?"
++     */
++    public List<Chest> getChests() {
++        List<Chest> out = new ArrayList<>();
++        for (Item i : floorItems) if (i instanceof Chest c) out.add(c);
++        return out;
++    }
++
++    /** WEEK 13: one walk over everything takeable, at any depth, containers first. */
+     public java.util.Iterator<Item> contents() {
+-        return new RoomContentsIterator(floorItems, chest == null ? null : chest.getContents());
++        return new CompositeIterator(floorItems.iterator());
+     }
+ 
+     /** WEEK 13 (US-10.1): the same walk, for for-each loops. */
+diff --git a/src/main/java/dungeonforge/core/RoomContentsIterator.java b/src/main/java/dungeonforge/core/RoomContentsIterator.java
+deleted file mode 100644
+index ba9c07b..0000000
+--- a/src/main/java/dungeonforge/core/RoomContentsIterator.java
++++ /dev/null
+@@ -1,58 +0,0 @@
+-package dungeonforge.core;
+-
+-import dungeonforge.items.Item;
+-
+-import java.util.Iterator;
+-import java.util.List;
+-import java.util.NoSuchElementException;
+-
+-/**
+- * WEEK 13 (US-10.1) -- ITERATOR. One walk over everything takeable in a room: the floor,
+- * then the chest. Callers stop needing to know that a room keeps items in two places.
+- *
+- * The case people get wrong: an EMPTY floor and a FULL chest. hasNext() must look past the
+- * floor before it answers.
+- */
+-public class RoomContentsIterator implements Iterator<Item> {
+-
+-    private final List<Item> floor;
+-    private final List<Item> chest;     // may be null: not every room has one
+-    private List<Item> current = null;  // the list we are walking
+-    private int index = -1;             // the index we last handed out in `current`
+-
+-    public RoomContentsIterator(List<Item> floor, List<Item> chest) {
+-        this.floor = floor;
+-        this.chest = chest;
+-    }
+-
+-    private boolean chestHasItems() { return chest != null && !chest.isEmpty(); }
+-
+-    @Override
+-    public boolean hasNext() {
+-        if (current == null) return !floor.isEmpty() || chestHasItems();
+-        if (index + 1 < current.size()) return true;
+-        return current == floor && chestHasItems();
+-    }
+-
+-    @Override
+-    public Item next() {
+-        if (!hasNext()) throw new NoSuchElementException();
+-        if (current == null) {
+-            current = floor.isEmpty() ? chest : floor;
+-            index = -1;
+-        } else if (index + 1 >= current.size()) {   // end of the floor: cross into the chest
+-            current = chest;
+-            index = -1;
+-        }
+-        return current.get(++index);
+-    }
+-
+-    /** Deletes from whichever list the last item came out of. This is why the refactor works. */
+-    @Override
+-    public void remove() {
+-        if (current == null || index < 0) {
+-            throw new IllegalStateException("remove() called before next()");
+-        }
+-        current.remove(index--);   // step back so the next next() does not skip an item
+-    }
+-}
+diff --git a/src/main/java/dungeonforge/factory/RoomPopulator.java b/src/main/java/dungeonforge/factory/RoomPopulator.java
+index b944bff..17d8aa0 100644
+--- a/src/main/java/dungeonforge/factory/RoomPopulator.java
++++ b/src/main/java/dungeonforge/factory/RoomPopulator.java
+@@ -38,7 +38,7 @@ public abstract class RoomPopulator {
+ 
+         Chest chest = createChest(depth);
+         if (chest != null && !chest.isEmpty()) {
+-            room.setChest(chest);
++            room.addItem(chest);      // WEEK 13: a chest is a floor item like any other
+         }
+     }
+ 
+diff --git a/src/main/java/dungeonforge/items/Chest.java b/src/main/java/dungeonforge/items/Chest.java
+index 17202da..0f09f8b 100644
+--- a/src/main/java/dungeonforge/items/Chest.java
++++ b/src/main/java/dungeonforge/items/Chest.java
+@@ -31,6 +31,9 @@ public class Chest implements Item {
+ 
+     public boolean remove(Item item) { return contents.remove(item); }
+ 
++    /** How many things are directly inside (not counting what is inside those). */
++    public int directCount() { return contents.size(); }
++
+     /**
+      * The tare plus each DIRECT child's weight. No hand-written recursion: a nested chest's
+      * getWeight() already includes its own contents, so asking each child once is the whole job.
+diff --git a/src/test/java/dungeonforge/CommandTest.java b/src/test/java/dungeonforge/CommandTest.java
+index 9196b11..6917c46 100644
+--- a/src/test/java/dungeonforge/CommandTest.java
++++ b/src/test/java/dungeonforge/CommandTest.java
+@@ -17,6 +17,7 @@ import dungeonforge.events.AchievementSystem;
+ import dungeonforge.events.EventBus;
+ import dungeonforge.events.QuestTracker;
+ import dungeonforge.factory.MonsterFactory;
++import dungeonforge.items.Chest;
+ import dungeonforge.items.Hourglass;
+ import dungeonforge.items.Potion;
+ import org.junit.jupiter.api.BeforeEach;
+@@ -200,9 +201,17 @@ class CommandTest {
+         ctx.setCurrentRoom(room);
+         room.getMonsters().clear();
+ 
++        // WEEK 13 (US-10.3) -- repaired, and the repair is the lesson. `loot` now takes the
++        // TOP LEVEL of the room, and generation puts every item inside a chest, so a treasure
++        // room has exactly ONE top-level thing in it. The macro was never the point of that
++        // arrangement -- several commands was. So the test now puts a second thing on the floor
++        // and says so, instead of relying on an arrangement that changed underneath it.
++        room.getFloorItems().add(new Potion("Dropped Draught", 0.3, 20, 22));
++
+         Command loot = parser.parse("loot", ctx);
+         assertInstanceOf(MacroCommand.class, loot);
+-        assertTrue(((MacroCommand) loot).size() >= 2);
++        assertTrue(((MacroCommand) loot).size() >= 2,
++                "a chest and a loose potion are two top-level targets, so two commands");
+     }
+ 
+     @Test
+@@ -212,7 +221,10 @@ class CommandTest {
+         ctx.setCurrentRoom(room);
+         room.getMonsters().clear();
+ 
+-        int expected = room.getChest().getContents().size() + room.getFloorItems().size();
++        // WEEK 13 (US-10.3) -- repaired. This used to add the chest's contents to the floor
++        // items, because those were two separate places. A chest is a floor item now, and
++        // `loot` takes the top level, so the box comes up with its contents still inside it.
++        int expected = room.getFloorItems().size();
+         run("loot");
+         assertEquals(expected, player.getInventory().size());
+ 
+@@ -292,7 +304,11 @@ class CommandTest {
+     private Room findRoomWithLoot() {
+         for (var level : ctx.getWorld().getLevels()) {
+             for (Room r : level.getRooms()) {
+-                if (r.getChest() != null && r.getChest().getContents().size() >= 2) return r;
++                // WEEK 13 (US-10.3) -- repaired. This read `r.getChest()`, which assumed a
++                // room has at most one chest and keeps it in a field of its own. A chest is an
++                // Item now and lies on the floor with everything else, so the question "does
++                // this room hold a container with loot in it" is asked of the collection.
++                for (Chest c : r.getChests()) if (c.directCount() >= 2) return r;
+             }
+         }
+         return null;
+diff --git a/src/test/java/dungeonforge/FactoryTest.java b/src/test/java/dungeonforge/FactoryTest.java
+index fa821e0..46f57e5 100644
+--- a/src/test/java/dungeonforge/FactoryTest.java
++++ b/src/test/java/dungeonforge/FactoryTest.java
+@@ -4,6 +4,7 @@ import dungeonforge.config.GameConfig;
+ import dungeonforge.config.RandomSource;
+ import dungeonforge.core.*;
+ import dungeonforge.factory.*;
++import dungeonforge.items.Chest;
+ import dungeonforge.items.Item;
+ import org.junit.jupiter.api.BeforeEach;
+ import org.junit.jupiter.api.Test;
+@@ -147,7 +148,9 @@ public class FactoryTest {
+         Room room = new Room("Test");
+         standard.populate(room, 1);
+ 
+-        assertFalse(room.hasChest());
++        // WEEK 13 (US-10.3) -- repaired. `hasChest()` is gone; a chest is an ordinary floor
++        // item now, so the assertion is about what is lying in the room.
++        assertTrue(room.getChests().isEmpty(), "a standard room gets no container");
+         assertFalse(room.getFlavor().isBlank(), "populate() must always set flavor text");
+     }
+ 
+@@ -157,8 +160,9 @@ public class FactoryTest {
+         Room room = new Room("Test");
+         treasure.populate(room, 2);
+ 
+-        assertTrue(room.hasChest());
+-        assertTrue(room.getChest().getContents().size() >= 2);
++        // WEEK 13 (US-10.3) -- repaired, same reason as above.
++        assertEquals(1, room.getChests().size(), "a treasure room gets exactly one container");
++        assertTrue(room.getChests().get(0).directCount() >= 2);
+         assertEquals(1, room.getMonsters().size(), "a treasure room has exactly one guard.");
+     }
+ 
+diff --git a/src/test/java/dungeonforge/IteratorCompositeTest.java b/src/test/java/dungeonforge/IteratorCompositeTest.java
+index 6d9a800..f6cf978 100644
+--- a/src/test/java/dungeonforge/IteratorCompositeTest.java
++++ b/src/test/java/dungeonforge/IteratorCompositeTest.java
+@@ -6,6 +6,7 @@ import dungeonforge.commands.GameContext;
+ import dungeonforge.config.GameConfig;
+ import dungeonforge.config.RandomSource;
+ import dungeonforge.core.Combat;
++import dungeonforge.core.CompositeIterator;
+ import dungeonforge.core.GameWorld;
+ import dungeonforge.core.Player;
+ import dungeonforge.core.Room;
+@@ -13,6 +14,7 @@ import dungeonforge.events.AchievementSystem;
+ import dungeonforge.events.EventBus;
+ import dungeonforge.events.QuestTracker;
+ import dungeonforge.factory.MonsterFactory;
++import dungeonforge.items.Armor;
+ import dungeonforge.items.Chest;
+ import dungeonforge.items.Item;
+ import dungeonforge.items.Potion;
+@@ -32,16 +34,36 @@ class IteratorCompositeTest {
+     private Player player;
+     private GameWorld world;
+ 
++    // WEEK 13 (US-10.3) -- the fixture grows. US-10.1's tests only needed a Room and a Chest;
++    // US-10.3's drive real commands, because taking a chest, undoing it and refusing an
++    // overload are all things a command does.
++    private GameContext ctx;
++    private CommandParser parser;
++    private CommandHistory history;
++
+     @BeforeEach
+     void setUp() {
+         GameConfig.resetForTests();
+         RandomSource.resetForTests();
+         player = new Player("Tester");
+         world = new GameWorld(player, new MonsterFactory());
++        EventBus bus = new EventBus();
++        history = new CommandHistory();
++        ctx = new GameContext(world, player, bus, new Combat(bus), history);
++        parser = new CommandParser(new QuestTracker(bus), new AchievementSystem(bus));
++    }
++
++    /** The turn sequence, the same four steps GameSession.runLine uses. */
++    private void run(String line) {
++        dungeonforge.commands.Command c = parser.parse(line, ctx);
++        c.execute();
++        history.push(c);
++        ctx.syncState();
+     }
+ 
+     private static Potion potion(String n)  { return new Potion(n, 0.4, 25, 21); }
+     private static Treasure coin(String n)  { return new Treasure(n, 0.1, 5); }
++    private static Armor plate(String n)    { return new Armor(n, 20.0, 50, 4); }
+ 
+     private static List<Item> drain(Iterator<Item> it) {
+         List<Item> out = new ArrayList<>();
+@@ -67,13 +89,17 @@ class IteratorCompositeTest {
+     /**
+      * Puts a container in a room.
+      *
+-     * WEEK 13 NOTE -- this helper exists because it is the ONE thing in these tests that is
+-     * coupled to how a room stores items. US-10.3 changes a room to keep everything in one
+-     * collection, and when it does, THIS METHOD is what changes. Every assertion below stays
+-     * exactly as it is.
++     * WEEK 13 (US-10.3) -- and here it is, changed. US-10.1 predicted that this one method
++     * would be the only fixture coupled to how a room stores items, and that prediction held:
++     * a chest is an Item now, so it lies on the floor with everything else.
++     *
++     * What US-10.1 ALSO predicted -- that every assertion would stay exactly as it is -- did
++     * not hold, and the three tests below say why. The composite walk legitimately yields the
++     * container itself, so a room that held three things now holds four. That is not a test
++     * breaking; it is the right answer changing.
+      */
+     private static void putContainerIn(Room room, Chest chest) {
+-        room.setChest(chest);
++        room.getFloorItems().add(chest);
+     }
+ 
+     // ===================== US-10.1 : the ITERATOR =====================
+@@ -93,7 +119,10 @@ class IteratorCompositeTest {
+         assertTrue(names.contains("Loose"),     "a loose floor item must be reachable");
+         assertTrue(names.contains("Inside A"),  "and so must the things inside the container");
+         assertTrue(names.contains("Inside B"),  "all of them, from the SAME walk");
+-        assertEquals(3, names.size(),           "three items, one walk");
++        // US-10.3: the container is now one of the things in the room, so the walk hands it
++        // out as well. Three became four, and `take <chest>` depends on it.
++        assertTrue(names.contains("Strongbox"), "and the container ITSELF, which is new");
++        assertEquals(4, names.size(),           "four now, one walk");
+     }
+ 
+     @Test
+@@ -106,8 +135,9 @@ class IteratorCompositeTest {
+         Chest c = new Chest("Strongbox");
+         c.add(potion("Inside"));
+         putContainerIn(chestOnly, c);
+-        assertEquals(1, drain(chestOnly.contents()).size(),
+-                "an EMPTY floor and a full container is the case people get wrong");
++        assertEquals(2, drain(chestOnly.contents()).size(),
++                "the container and the thing in it. Before US-10.3 this was 1, because the "
++              + "container was kept in a field of its own and never walked.");
+ 
+         Room empty = new Room("C");
+         assertFalse(empty.contents().hasNext(), "and nothing at all must say so");
+@@ -125,12 +155,13 @@ class IteratorCompositeTest {
+             if (it.next().getName().equals("Inside")) { it.remove(); break; }
+         }
+         assertEquals(0, c.getContents().size(), "removed from the container");
+-        assertEquals(1, r.getFloorItems().size(), "and the floor is untouched");
++        assertEquals(2, r.getFloorItems().size(),
++                "and the floor is untouched -- which is now the coin AND the container");
+ 
+         for (Iterator<Item> it = r.contents(); it.hasNext(); ) {
+             if (it.next().getName().equals("Loose")) { it.remove(); break; }
+         }
+-        assertEquals(0, r.getFloorItems().size(), "and now from the floor");
++        assertEquals(1, r.getFloorItems().size(), "and now from the floor; the container stays");
+     }
+ 
+     @Test
+@@ -152,22 +183,17 @@ class IteratorCompositeTest {
+     }
+ 
+     @Test
+-    void twoOfTheSixFilesNoLongerKnowARoomHasTwoContainers() throws Exception {
+-        for (String f : List.of("commands/TakeCommand.java", "core/GameWorld.java")) {
+-            String code = source(f);
+-            assertFalse(code.contains("getChest()") || code.contains("hasChest()"),
+-                    f + " still knows a room keeps items in exactly two places");
+-        }
+-        // And the three that still do, on purpose. Each one needs to know WHERE an item is,
+-        // which is the one thing this iterator forgets. US-10.2 and US-10.3 fix two of them by
+-        // removing the second collection; describeRoom() keeps direct access for good.
+-        for (String f : List.of("commands/TurnSnapshot.java", "factory/RoomPopulator.java",
++    void noFileStillKnowsARoomHasTwoContainers() throws Exception {
++        // US-10.1 took this from six files to four, and said the remaining three could only be
++        // fixed by REMOVING the structure they were working around. That is what happened: the
++        // second collection is gone, so there is no longer a "where" for them to need.
++        for (String f : List.of("commands/TakeCommand.java", "core/GameWorld.java",
++                                "commands/TurnSnapshot.java", "factory/RoomPopulator.java",
+                                 "commands/CommandParser.java")) {
+             String code = source(f);
+-            assertTrue(code.contains("getChest()") || code.contains("hasChest()")
+-                    || code.contains("setChest("),
+-                    f + " was expected to still need direct access after US-10.1. If it does "
+-                      + "not, check that nothing was weakened to win a grep.");
++            assertFalse(code.contains("getChest()") || code.contains("hasChest()")
++                     || code.contains("setChest("),
++                    f + " still names the two-container API");
+         }
+     }
+ 
+@@ -253,4 +279,153 @@ class IteratorCompositeTest {
+               + "the clinic asks you to defend that trade.");
+         assertTrue(code.contains("children()"), "traversal belongs on the Component");
+     }
++
++    // ===================== US-10.3 : the COMPOSITE ITERATOR =====================
++
++    @Test
++    void aContainerIsYieldedBeforeTheThingsInsideIt() {
++        Chest c = new Chest("Strongbox");
++        c.add(potion("Inside"));
++        List<Item> floor = new ArrayList<>(List.of(c));
++
++        List<Item> walked = drain(new CompositeIterator(floor.iterator()));
++        assertEquals("Strongbox", walked.get(0).getName(), "pre-order: the box first");
++        assertEquals("Inside",    walked.get(1).getName());
++    }
++
++    @Test
++    void theWalkReachesItemsNestedTwoDeep() {
++        Chest inner = new Chest("Inner");
++        inner.add(potion("Deep"));
++        Chest outer = new Chest("Outer");
++        outer.add(inner);
++        List<Item> floor = new ArrayList<>(List.of(outer, coin("Shallow")));
++
++        List<String> names = new ArrayList<>();
++        for (Item i : drain(new CompositeIterator(floor.iterator()))) names.add(i.getName());
++        assertEquals(List.of("Outer", "Inner", "Deep", "Shallow"), names,
++                "depth-first, pre-order, and nothing skipped");
++    }
++
++    @Test
++    void removingAContainerStopsTheWalkDescendingIntoIt() {
++        Chest c = new Chest("Strongbox");
++        c.add(potion("Inside A"));
++        c.add(potion("Inside B"));
++        List<Item> floor = new ArrayList<>(List.of(c, coin("Loose")));
++
++        List<String> seen = new ArrayList<>();
++        for (Iterator<Item> it = new CompositeIterator(floor.iterator()); it.hasNext(); ) {
++            Item i = it.next();
++            seen.add(i.getName());
++            if (i.getName().equals("Strongbox")) it.remove();
++        }
++        assertEquals(List.of("Strongbox", "Loose"), seen,
++                "once the box is gone the walk must not keep handing out its contents");
++        assertEquals(1, floor.size());
++    }
++
++    @Test
++    void roomKeepsItemsInOnePlaceNow() throws Exception {
++        String code = source("core/Room.java");
++        assertFalse(code.contains("private Chest chest"),
++                "the second container field is gone");
++        assertEquals(1, countOf(code, "new CompositeIterator"),
++                "the room's walk is the composite walk");
++    }
++
++    @Test
++    void youCanPickUpTheChestTheGameToldYouAboutAndAlsoReachInsideIt() {
++        Room r = new Room("Test");
++        Chest c = new Chest("Iron-bound Chest");
++        c.add(potion("Vial of Still Water"));
++        r.getFloorItems().add(c);
++        ctx.setCurrentRoom(r);
++
++        run("take vial");
++        assertTrue(player.getInventory().stream().anyMatch(i -> i.getName().contains("Vial")),
++                "a specific item inside a container must be takeable");
++        assertEquals(0, c.directCount());
++
++        run("take iron-bound");
++        assertTrue(player.getInventory().contains(c),
++                "and so must the container. Before US-10.2 the game listed the chest and then "
++              + "said 'There is nothing like that here.'");
++        assertTrue(r.getFloorItems().isEmpty());
++    }
++
++    @Test
++    void undoRestoresWhatWasInsideAContainer() {
++        Room r = new Room("Test");
++        Chest c = new Chest("Strongbox");
++        c.add(potion("Vial"));
++        c.add(coin("Coin"));
++        r.getFloorItems().add(c);
++        ctx.setCurrentRoom(r);
++
++        run("take vial");
++        assertEquals(1, c.directCount());
++
++        assertTrue(history.undoLast());
++        assertEquals(2, c.directCount(),
++                "the snapshot records what every container held, at any depth. A shallow copy "
++              + "of the floor list would have shared the chest and lost this.");
++        assertEquals(0, player.getInventory().size());
++    }
++
++    @Test
++    void undoRestoresANestedContainersContents() {
++        Room r = new Room("Test");
++        Chest inner = new Chest("Inner");
++        inner.add(potion("Deep"));
++        Chest outer = new Chest("Outer");
++        outer.add(inner);
++        r.getFloorItems().add(outer);
++        ctx.setCurrentRoom(r);
++
++        run("take deep");
++        assertEquals(0, inner.directCount());
++
++        assertTrue(history.undoLast());
++        assertEquals(1, inner.directCount(), "two levels down and still restored");
++    }
++
++    @Test
++    void carriedWeightSumsWhatYouAreHoldingAndStopsWhenItIsTooMuch() {
++        assertEquals(0.0, player.carriedWeight(), 0.001, "a new player carries nothing");
++
++        Chest c = new Chest("Strongbox");
++        c.add(potion("P"));                      // chest total 5.4
++        player.addItem(c);
++        assertEquals(5.4, player.carriedWeight(), 0.001,
++                "only the top level is summed, because the chest already rolled up its own");
++
++        Room r = new Room("Test");
++        r.getFloorItems().add(plate("Anvil Plate"));   // 20.0kg each
++        ctx.setCurrentRoom(r);
++        for (int i = 0; i < 3; i++) r.getFloorItems().add(plate("Anvil Plate " + i));
++
++        for (int i = 0; i < 4; i++) run("take anvil");
++        assertTrue(player.carriedWeight() <= player.carryCapacity(),
++                "the capacity has been printed on the status line since Week 1 and compared "
++              + "with nothing until US-10.3. Carrying " + player.carriedWeight() + " of "
++              + player.carryCapacity() + " would mean it still is.");
++    }
++
++    @Test
++    void lootTakesTheTopLevelBecauseTheBoxCarriesItsOwnContents() {
++        Room r = new Room("Test");
++        Chest c = new Chest("Strongbox");
++        c.add(potion("Inside A"));
++        c.add(potion("Inside B"));
++        r.getFloorItems().add(c);
++        r.getFloorItems().add(coin("Loose"));
++        ctx.setCurrentRoom(r);
++
++        run("loot");
++        assertEquals(2, player.getInventory().size(),
++                "the chest and the coin -- not the chest, the coin AND the two potions. A "
++              + "composite iterator is a tool, not an obligation.");
++        assertEquals(2, c.directCount(), "the potions came along inside the box");
++    }
+ }
+-- 
+2.43.0
+
