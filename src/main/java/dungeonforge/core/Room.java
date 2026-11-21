@@ -17,7 +17,6 @@ public class Room {
     private String flavor;
     private final List<Monster> monsters = new ArrayList<>();
     private final List<Item> floorItems = new ArrayList<>();
-    private Chest chest;
     /** WEEK 7 (provided): where you can walk from here. Week 10's generators make this a real graph. */
     private final Map<String, Room> exits = new LinkedHashMap<>();
 
@@ -33,13 +32,20 @@ public class Room {
     public void addMonster(Monster m)   { monsters.add(m); }
     public List<Item> getFloorItems()   { return floorItems; }
     public void addItem(Item i)         { floorItems.add(i); }
-    public Chest getChest()             { return chest; }
-    public void setChest(Chest c)       { this.chest = c; }
-    public boolean hasChest()           { return chest != null && !chest.isEmpty(); }
 
-    /** WEEK 13 (US-10.1): one walk over everything takeable, wherever the room keeps it. */
+    /**
+     * WEEK 13 (US-10.3): the containers lying in this room. A chest is an Item now, so it
+     * lives on the floor with everything else; this answers "which of those are boxes?"
+     */
+    public List<Chest> getChests() {
+        List<Chest> out = new ArrayList<>();
+        for (Item i : floorItems) if (i instanceof Chest c) out.add(c);
+        return out;
+    }
+
+    /** WEEK 13: one walk over everything takeable, at any depth, containers first. */
     public java.util.Iterator<Item> contents() {
-        return new RoomContentsIterator(floorItems, chest == null ? null : chest.getContents());
+        return new CompositeIterator(floorItems.iterator());
     }
 
     /** WEEK 13 (US-10.1): the same walk, for for-each loops. */

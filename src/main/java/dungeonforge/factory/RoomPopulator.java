@@ -38,7 +38,7 @@ public abstract class RoomPopulator {
 
         Chest chest = createChest(depth);
         if (chest != null && !chest.isEmpty()) {
-            room.setChest(chest);
+            room.addItem(chest);      // WEEK 13: a chest is a floor item like any other
         }
     }
 

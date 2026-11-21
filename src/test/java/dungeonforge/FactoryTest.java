@@ -4,6 +4,7 @@ import dungeonforge.config.GameConfig;
 import dungeonforge.config.RandomSource;
 import dungeonforge.core.*;
 import dungeonforge.factory.*;
+import dungeonforge.items.Chest;
 import dungeonforge.items.Item;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -107,7 +108,7 @@ public class FactoryTest {
 
     @Test
     void everyLevelIsInternallyConsistent() {
-        GameWorld world = new GameWorld(new Player("Tester"));
+        GameWorld world = new GameWorld(new Player("Tester"), factory);
 
         for(DungeonLevel level : world.getLevels()) {
             Set<String> allowed = switch (level.getThemeName()) {
@@ -147,7 +148,9 @@ public class FactoryTest {
         Room room = new Room("Test");
         standard.populate(room, 1);
 
-        assertFalse(room.hasChest());
+        // WEEK 13 (US-10.3) -- repaired. `hasChest()` is gone; a chest is an ordinary floor
+        // item now, so the assertion is about what is lying in the room.
+        assertTrue(room.getChests().isEmpty(), "a standard room gets no container");
         assertFalse(room.getFlavor().isBlank(), "populate() must always set flavor text");
     }
 
@@ -157,14 +160,15 @@ public class FactoryTest {
         Room room = new Room("Test");
         treasure.populate(room, 2);
 
-        assertTrue(room.hasChest());
-        assertTrue(room.getChest().getContents().size() >= 2);
+        // WEEK 13 (US-10.3) -- repaired, same reason as above.
+        assertEquals(1, room.getChests().size(), "a treasure room gets exactly one container");
+        assertTrue(room.getChests().get(0).directCount() >= 2);
         assertEquals(1, room.getMonsters().size(), "a treasure room has exactly one guard.");
     }
 
     @Test
     void theFinalRoomOfTheDungeonHoldsTheBoss() {
-        GameWorld world = new GameWorld(new Player("Tester"));
+        GameWorld world = new GameWorld(new Player("Tester"), factory);
         List<DungeonLevel> levels  = world.getLevels();
         DungeonLevel last = levels.get(levels.size() - 1);
         Room finalRoom = last.getRooms().get(last.getRooms().size() - 1);
@@ -176,9 +180,9 @@ public class FactoryTest {
     @Test
     void theWorldStillGenerateesDeterministicallyFromASeed() {
         RandomSource.getInstance().reseed(77L);
-        int first = new GameWorld(new Player("A")).totalMonsters();
+        int first = new GameWorld(new Player("A"), factory).totalMonsters();
         RandomSource.getInstance().reseed(77L);
-        int second = new GameWorld(new Player("B")).totalMonsters();
+        int second = new GameWorld(new Player("B"), factory).totalMonsters();
 
         assertEquals(first, second, "Singlton's MUST still guarantee a deterministic world.");
     }
