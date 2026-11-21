@@ -32,7 +32,21 @@ the data** that made a correct class the wrong class.
 **Step 4 — the one worth the points.** Those tests were written against a class that no longer
 exists, and they never changed. **What were they asserting?**
 
-> The **contract a caller depends on**: one walk reaches every item wherever the room keeps it, the walk is honest when a collection is empty, `remove()` after `next()` deletes from whichever collection the item actually came from, and `remove()` before `next()` throws. None of them named `RoomContentsIterator` — they called `room.contents()` — so a completely different implementation could satisfy them.
+> **The question's premise is wrong: some of them did change.** Three of the seven never changed; four did.
+
+| US-10.1 test | After US-10.3 |
+|---|---|
+| `removeBeforeNextIsAnErrorRatherThanAGuess` | unchanged |
+| `takeCommandHasExactlyOneSearchPath` | unchanged |
+| `countingLootNoLongerForgetsTheFloor` | unchanged |
+| `oneWalkReachesItemsWhereverTheRoomKeepsThem` | 3 items becomes 4 (the walk now yields the chest itself) |
+| `theWalkIsHonestWhenOneCollectionIsEmpty` | 1 becomes 2 |
+| `removeTakesTheItemOutOfWhicheverCollectionItWasIn` | two assertions move (the floor now holds the chest too) |
+| `twoOfTheSixFilesNoLongerKnowARoomHasTwoContainers` | inverts — replaced by `noFileStillKnowsARoomHasTwoContainers` |
+
+Measured by comparing each test method in `IteratorCompositeTest.java` at the US-10.1 commit (`b65f292`) and on `main`.
+
+> The three that survived assert the **iterator's contract** — `remove()` before `next()` throws, `TakeCommand` has one search path, `totalLoot()` counts the floor. The four that moved assert **how many things are in a room**, and the composite legitimately changed that answer: a chest is now one of the things, and `take <chest>` depends on exactly that.
 
 **Step 5.** Write one sentence a future you could use as a rule, beginning *"A test should assert
 …"*.

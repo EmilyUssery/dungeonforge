@@ -202,7 +202,7 @@ $ mvn test
 **US-10.1's tests were written against a class that no longer exists, and they still pass. In one
 sentence: what were they actually asserting?**
 
-> They asserted the contract a caller depends on — every item in the room is reached by one walk and `remove()` deletes it from wherever it lives — not the shape of the data or the class that happened to do the walking.
+> Not all of them still pass *unmodified* — three never changed (they assert the iterator's contract: `remove()` before `next()` throws, one search path in `TakeCommand`, `totalLoot()` counts the floor), and four changed because the composite walk now yields the chest itself, so the right count in a room went up. The ones that survived were asserting the contract a caller depends on, not the class that happened to do the walking.
 
 
 ### The bug nobody reported
