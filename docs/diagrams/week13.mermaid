@@ -853,18 +853,18 @@ classDiagram
     }
 
     namespace ITERATOR_COMPOSITE {
-        class Iterator~Item~ {
-            <<interface java.util>>
+        class Iterator {
+            <<interface, java.util>>
             +hasNext()* boolean
             +next()* Item
             +remove() void
         }
         class CompositeIterator {
             <<Iterator>>
-            -Deque~Iterator~Item~~ stack
-            -Iterator~Item~ lastUsed
-            -Iterator~Item~ descendedInto
-            +CompositeIterator(Iterator~Item~ top)
+            -Deque~Iterator~ stack
+            -Iterator lastUsed
+            -Iterator descendedInto
+            +CompositeIterator(Iterator top)
             +hasNext() boolean
             +next() Item
             +remove() void
@@ -882,7 +882,7 @@ classDiagram
             -List~Item~ inventory
             -List~Monster~ monsters
             -List~Item~ floorItems
-            -Map~Chest,List~Item~~ chestContents
+            -Map~Chest,List~ chestContents
             -Weapon equipped
             -Map~Monster,Integer~ monsterHp
             -Map~Monster,CombatStrategy~ monsterStrategies
@@ -1269,6 +1269,6 @@ classDiagram
     note for SpokeGenerator "US-8.4: one new class + one registry line.\nNo reachability check and no entrance guard here:\nthe template supplies both."
     note for LegacyBestiaryAdapter "ADAPTER: implements MonsterSource, holds a LegacyBestiary.\nDecorator holds the SAME type it implements; this holds a different one.\nNo xp column: derived, and every derivation is recorded in translationNotes().\nAI SAPPER has no counterpart: falls back to aggressive, out loud."
     note for GameSession "FACADE: the only place a game is assembled and the only copy of\nthe turn (parse, execute, push, ctx.syncState()). Sources are registered\nbefore the world is built, and all listeners are subscribed, DamageMeter too."
-    note for CompositeIterator "Week 13 (US-10.3): a STACK of iterators flattens the tree.\nnext() yields the item FIRST, then pushes its children() - pre-order,\nso take iron-bound matches the chest before what is inside it.\nremove() delegates to lastUsed and pops a removed box's children."
+    note for CompositeIterator "Week 13 (US-10.3): a STACK of iterators flattens the tree.\nnext() yields the item FIRST, then pushes its children() - pre-order,\nso take iron-bound matches the chest before what is inside it.\nremove() delegates to lastUsed and pops the children of a removed box."
     note for Chest "Week 13 (US-10.2): COMPOSITE. A Chest is an Item that holds Items.\ngetWeight() = 5.0kg tare + each direct child; nesting rolls up for free.\nadd() lives here, not on Item (safety over transparency)."
     note for Room "Week 13: one collection. The chest field and getChest/setChest/hasChest\nare gone; a chest lies on the floor like any other Item.\nRoomContentsIterator (US-10.1) was created and then deleted."
