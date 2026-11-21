@@ -34,6 +34,15 @@ public abstract class Entity {
      */
     public void setHp(int hp) { this.hp = Math.max(0, Math.min(hp, maxHp)); }
 
+    /**
+     * WEEK 13 (US-9.4): until this existed nothing could change a maximum, so a warning that read
+     * the wrong number could never be caught. Clamped to at least 1; current hp follows it down.
+     */
+    public void setMaxHp(int newMax) {
+        this.maxHp = Math.max(1, newMax);
+        this.hp = Math.min(this.hp, this.maxHp);
+    }
+
     public void takeDamage(int amount) { hp = Math.max(0, hp - Math.max(0, amount)); }
     public void heal(int amount)       { hp = Math.min(maxHp, hp + Math.max(0, amount)); }
 
