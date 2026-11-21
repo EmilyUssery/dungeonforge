@@ -10,8 +10,17 @@ public class TakeCommand extends AbstractCommand {
 
     @Override
     protected boolean doExecute() {
-        Item found = takeFromFloor();
-        if (found == null) found = takeFromChest();
+        // WEEK 13 (US-10.1): one walk, wherever the room keeps things. The iterator's
+        // remove() knows which collection the item came out of, so this class does not.
+        Item found = null;
+        for (java.util.Iterator<Item> it = room().contents(); it.hasNext(); ) {
+            Item candidate = it.next();
+            if (matches(candidate)) {
+                it.remove();
+                found = candidate;
+                break;
+            }
+        }
 
         if (found == null) {
             bus().message("There is nothing like that here.");
@@ -20,21 +29,6 @@ public class TakeCommand extends AbstractCommand {
         player().addItem(found);
         bus().publish(GameEvent.message("You take " + found.getName() + "."));
         return true;
-    }
-
-    private Item takeFromFloor() {
-        for (Item i : room().getFloorItems()) {
-            if (matches(i)) { room().getFloorItems().remove(i); return i; }
-        }
-        return null;
-    }
-
-    private Item takeFromChest() {
-        if (!room().hasChest()) return null;
-        for (Item i : room().getChest().getContents()) {
-            if (matches(i)) { room().getChest().getContents().remove(i); return i; }
-        }
-        return null;
     }
 
     private boolean matches(Item i) {

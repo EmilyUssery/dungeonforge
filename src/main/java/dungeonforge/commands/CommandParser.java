@@ -179,8 +179,9 @@ public class CommandParser {
     /** WEEK 7 -- assembles a MACRO COMMAND at parse time from whatever is in the room. */
     private static Command makeLootMacro(GameContext ctx) {
         Room room = ctx.getCurrentRoom();
-        List<Item> targets = new ArrayList<>(room.getFloorItems());
-        if (room.hasChest()) targets.addAll(room.getChest().getContents());
+        // WEEK 13 (US-10.1): one walk instead of two collections.
+        List<Item> targets = new ArrayList<>();
+        for (Item i : room.asContents()) targets.add(i);
 
         if (targets.isEmpty()) {
             return new NoCommand(ctx.getBus(), "There is nothing here to loot.");

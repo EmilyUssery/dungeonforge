@@ -37,6 +37,14 @@ public class Room {
     public void setChest(Chest c)       { this.chest = c; }
     public boolean hasChest()           { return chest != null && !chest.isEmpty(); }
 
+    /** WEEK 13 (US-10.1): one walk over everything takeable, wherever the room keeps it. */
+    public java.util.Iterator<Item> contents() {
+        return new RoomContentsIterator(floorItems, chest == null ? null : chest.getContents());
+    }
+
+    /** WEEK 13 (US-10.1): the same walk, for for-each loops. */
+    public Iterable<Item> asContents() { return this::contents; }
+
     public Map<String, Room> getExits()      { return exits; }
     public Room getExit(String direction)    { return exits.get(direction.toLowerCase()); }
     public void link(String direction, Room to) { exits.put(direction.toLowerCase(), to); }
