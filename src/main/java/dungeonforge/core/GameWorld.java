@@ -1,5 +1,7 @@
 package dungeonforge.core;
 
+import dungeonforge.items.Item;
+
 import dungeonforge.config.GameConfig;
 import dungeonforge.factory.MonsterFactory;
 import dungeonforge.factory.ThemeKit;
@@ -95,7 +97,8 @@ public class GameWorld {
         int n = 0;
         for (DungeonLevel l : levels) {
             for (Room r : l.getRooms()) {
-                if (r.hasChest()) n += r.getChest().getContents().size();
+                // WEEK 13 (US-10.1): this used to count chest contents only and forgot the floor.
+                for (java.util.Iterator<Item> it = r.contents(); it.hasNext(); it.next()) n++;
             }
         }
         return n;
