@@ -183,4 +183,74 @@ class IteratorCompositeTest {
               + "loose on a floor, so the missing branch was invisible until a player dropped "
               + "something. Writing the walk ONCE is what fixed it -- not the pattern.");
     }
+
+    // ===================== US-10.2 : the COMPOSITE =====================
+
+    @Test
+    void aChestIsAnItem() {
+        assertInstanceOf(Item.class, new Chest("Strongbox"));
+    }
+
+    @Test
+    void weightAndValueRollUpThroughOneLevel() {
+        Chest c = new Chest("Strongbox");
+        c.add(potion("P"));                 // 0.4kg, 25g
+        c.add(coin("C"));                   // 0.1kg, 5g
+        assertEquals(5.5, c.getWeight(), 0.001, "5.0 tare + 0.4 + 0.1");
+        assertEquals(30, c.getValue(),           "25 + 5; the box itself is not treasure");
+    }
+
+    @Test
+    void weightAndValueRollUpThroughNesting() {
+        Chest inner = new Chest("Inner");
+        inner.add(potion("P"));             // 0.4 / 25
+        Chest outer = new Chest("Outer");
+        outer.add(inner);
+        outer.add(coin("C"));               // 0.1 / 5
+
+        assertEquals(5.0 + (5.0 + 0.4) + 0.1, outer.getWeight(), 0.001,
+                "the outer tare, the inner chest's own total, and the loose coin");
+        assertEquals(30, outer.getValue(), "value passes straight through the nesting");
+    }
+
+    @Test
+    void anEmptyChestStillWeighsSomething() {
+        assertEquals(5.0, new Chest("Empty").getWeight(), 0.001,
+                "a chest is a thing, not just a label for its contents");
+        assertEquals(0, new Chest("Empty").getValue());
+    }
+
+    @Test
+    void aChestCanBeCarriedLikeAnythingElse() {
+        Chest c = new Chest("Strongbox");
+        c.add(potion("P"));
+        player.addItem(c);
+        assertTrue(player.getInventory().contains(c));
+    }
+
+    @Test
+    void aChestCannotContainItself() {
+        Chest c = new Chest("Strongbox");
+        assertThrows(IllegalArgumentException.class, () -> c.add(c));
+    }
+
+    @Test
+    void leavesHaveNoChildrenAndTheCompositeDoes() {
+        assertFalse(potion("P").children().hasNext(), "a potion contains nothing");
+        assertFalse(potion("P").isContainer());
+        Chest c = new Chest("Strongbox");
+        assertFalse(c.isContainer(), "an EMPTY chest holds nothing, and says so");
+        c.add(potion("P"));
+        assertTrue(c.isContainer());
+    }
+
+    @Test
+    void theComponentDeclaresNoMutationItCannotHonour() throws Exception {
+        String code = source("items/Item.java");
+        assertFalse(code.contains("void add("),
+                "Head First puts add() on the Component and lets leaves throw (p. 364). We "
+              + "did not. The cost is that you cannot call add() against an Item, and D2 of "
+              + "the clinic asks you to defend that trade.");
+        assertTrue(code.contains("children()"), "traversal belongs on the Component");
+    }
 }
