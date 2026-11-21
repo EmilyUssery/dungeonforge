@@ -12,9 +12,6 @@ import dungeonforge.events.GameEvent;
 import dungeonforge.factory.MonsterDef;
 import dungeonforge.factory.MonsterFactory;
 import dungeonforge.factory.MonsterSource;
-import dungeonforge.items.BasicWeapon;
-import dungeonforge.items.EnchantmentRegistry;
-import dungeonforge.items.Weapon;
 import dungeonforge.legacy.LegacyBestiary;
 import dungeonforge.legacy.LegacyBestiaryAdapter;
 import dungeonforge.session.GameSession;
@@ -28,7 +25,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/** WEEK 12 -- Adapter (US-9.1), Facade (US-9.2), the replay receipt (US-9.3), carry-over (US-8.5). */
+/** WEEK 12 -- Adapter (US-9.1), Facade (US-9.2), the replay receipt (US-9.3). US-8.5 moved to CarryOverTest in Week 13. */
 class AdapterFacadeTest {
 
     @BeforeEach
@@ -297,25 +294,6 @@ class AdapterFacadeTest {
         int playMonsters = GameSession.start("Delver").getWorld().totalMonsters();
         assertEquals(reportMonsters, playMonsters,
                 "--report must describe the dungeon you actually play in");
-    }
-
-    // ===================== US-8.5 : the carry-over =====================
-
-    @Test
-    void enchantmentNamesAreCaseAndWhitespaceInsensitive() {
-        assertTrue(EnchantmentRegistry.isKnown("FLAMING"), "a player typing in caps is not an error");
-        assertTrue(EnchantmentRegistry.isKnown("  frost  "));
-        Weapon w = EnchantmentRegistry.apply("  FLAMING ", new BasicWeapon("Iron Sword", 3.0, 40, 8));
-        assertEquals("Flaming Iron Sword", w.getName());
-        assertFalse(EnchantmentRegistry.isKnown("sparkly"), "unknown is still unknown");
-    }
-
-    @Test
-    void theMonsterStateEventIsSpelledCorrectly() {
-        assertNotNull(EventType.valueOf("MONSTER_STATE_CHANGED"));
-        for (EventType t : EventType.values()) {
-            assertFalse(t.name().contains("SATE"), "left-over typo: " + t.name());
-        }
     }
 
     // ===================== helpers =====================
