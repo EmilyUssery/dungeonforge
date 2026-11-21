@@ -4,6 +4,7 @@ import dungeonforge.behavior.CombatStrategy;
 import dungeonforge.core.Monster;
 import dungeonforge.core.Player;
 import dungeonforge.core.Room;
+import dungeonforge.items.Chest;
 import dungeonforge.items.Item;
 import dungeonforge.items.Weapon;
 import dungeonforge.states.MonsterState;
@@ -38,7 +39,8 @@ public final class TurnSnapshot {
     private final List<Item> inventory;
     private final List<Monster> monsters;
     private final List<Item> floorItems;
-    private final List<Item> chestContents;
+    /** WEEK 13 (US-10.3): what EVERY container held, at any depth, keyed by identity. */
+    private final Map<Chest, List<Item>> chestContents = new IdentityHashMap<>();
     private final Weapon equipped;
 
     private final Map<Monster, Integer> monsterHp = new IdentityHashMap<>();
@@ -58,8 +60,11 @@ public final class TurnSnapshot {
 
         this.monsters = new ArrayList<>(room.getMonsters());
         this.floorItems = new ArrayList<>(room.getFloorItems());
-        this.chestContents = room.getChest() == null
-                ? null : new ArrayList<>(room.getChest().getContents());
+        // The shallow copy above records WHICH objects were in the room. This records what each
+        // container HELD. The composite walk finds containers at any depth, so no recursion here.
+        for (java.util.Iterator<Item> it = room.contents(); it.hasNext(); ) {
+            if (it.next() instanceof Chest c) chestContents.put(c, new ArrayList<>(c.getContents()));
+        }
 
         for (Monster m : room.getMonsters()) {
             monsterHp.put(m, m.getHp());
@@ -84,9 +89,9 @@ public final class TurnSnapshot {
         room.getMonsters().addAll(monsters);          // brings back anything that fled
         room.getFloorItems().clear();
         room.getFloorItems().addAll(floorItems);
-        if (chestContents != null && room.getChest() != null) {
-            room.getChest().getContents().clear();
-            room.getChest().getContents().addAll(chestContents);
+        for (Map.Entry<Chest, List<Item>> e : chestContents.entrySet()) {
+            e.getKey().getContents().clear();
+            e.getKey().getContents().addAll(e.getValue());
         }
 
         for (Map.Entry<Monster, Integer> e : monsterHp.entrySet()) {

@@ -31,6 +31,9 @@ public class Chest implements Item {
 
     public boolean remove(Item item) { return contents.remove(item); }
 
+    /** How many things are directly inside (not counting what is inside those). */
+    public int directCount() { return contents.size(); }
+
     /**
      * The tare plus each DIRECT child's weight. No hand-written recursion: a nested chest's
      * getWeight() already includes its own contents, so asking each child once is the whole job.

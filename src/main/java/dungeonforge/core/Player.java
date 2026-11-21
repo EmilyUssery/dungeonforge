@@ -98,6 +98,21 @@ public class Player extends Entity {
     public void addGold(int g)    { gold += g; }
     public void addXp(int x)      { xp += x; }
 
+    /**
+     * WEEK 13 (US-10.3): what you are actually carrying. Top level only -- a chest's own
+     * getWeight() has already rolled up everything inside it.
+     */
+    public double carriedWeight() {
+        double sum = 0;
+        for (Item i : inventory) sum += i.getWeight();
+        return sum;
+    }
+
+    /** WEEK 13 (US-10.3): would picking this up keep you within capacity? */
+    public boolean canCarry(Item extra) {
+        return carriedWeight() + extra.getWeight() <= carryCapacity();
+    }
+
     /** Backpack capacity in kilograms, from config. */
     public double carryCapacity() {
         return GameConfig.getInstance().getDouble("carryCapacity");
@@ -111,7 +126,7 @@ public class Player extends Entity {
         return name + "  HP " + hp + "/" + maxHp
                 + "  ATK " + getAttackPower() + "  DEF " + defense
                 + "  Gold " + gold + "  XP " + xp
-                + "  Carry " + carryCapacity() + "kg"
+                + "  Carry " + String.format("%.1f/%.1f", carriedWeight(), carryCapacity()) + "kg"
                 + (equippedWeapon == null ? "  (unarmed)" : "  wielding " + equippedWeapon.describe());
     }
 }
