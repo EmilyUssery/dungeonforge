@@ -21,16 +21,16 @@ this.threshold = (int)Math.round(threshold * GameConfig.getInstance().getDouble(
 **`playerStartingHp` is a constant in `config.json`. In one sentence: what is the meter supposed
 to be asking, and who is it asking instead?**
 
-> ✍️ YOUR WORDS: (it should ask the player for their current maximum; it asks the config file for the starting number)
+> It is supposed to ask the player what their maximum hit points are right now, but it asks `config.json` for the starting number instead, so the warning stops meaning anything the moment a maximum changes.
 
 
 **Now try to write a test that proves it is wrong.**
 
-**What stops you?** `Entity` had no `setMaxHp` (`grep -c setMaxHp Entity.java` → `0`), so nothing could change a maximum. ✍️ YOUR WORDS: 
+**What stops you?** `Entity` had no `setMaxHp` (`grep -c setMaxHp Entity.java` → `0`), so nothing could change a maximum — and a test cannot set up a situation the code has no way to create.
 
 **One sentence: why did this defect survive four sprints?**
 
-> ✍️ YOUR WORDS: 
+> Because the starting HP and the maximum were always the same number, the wrong answer and the right answer never disagreed, so no test and no player could ever see the difference.
 
 
 ---
@@ -59,7 +59,7 @@ src/main/java/dungeonforge/factory/RoomPopulator.java
 **Now the sentence. Name the count and say what it is a count OF.** *(Two points. "Six files use
 getChest" is not it — six files know *something*, and naming that thing is the answer.)*
 
-> ✍️ YOUR WORDS: (six files know that ______)
+> Six files know that a room keeps its items in exactly **two** places — the floor and the chest — and each of them has to handle both places separately.
 
 **And one more count:**
 
@@ -72,7 +72,7 @@ grep -rln "carriedWeight\|totalWeight" src/main/java/
 **Every `Item` has declared `getWeight()` since Week 1. In one sentence, what does that result
 mean about the number on your status line?**
 
-> ✍️ YOUR WORDS: 
+> The "Carry 60.0kg" on the status line is only the capacity read from config; nothing ever adds up what the player is actually carrying, so it has never limited anything.
 
 
 ---
@@ -108,13 +108,31 @@ Open `commands/TakeCommand.java`. Put `takeFromFloor()` and `takeFromChest()` si
 **Paste those four lines of output:**
 
 ```
-✍️ YOUR WORDS: paste from the old game: north, fight, look, take iron-bound
+[Exploring | HP 80/80] > north
+  You go north.
+  Barrow Wight is now hunting.
+  Combat! 1 hostile(s). Try 'attack'.
+[Combat | HP 80/80] > attack            (x2)
+  You hit Barrow Wight for 10.
+  Barrow Wight dies. +14 XP.
+  The room falls quiet.
+[Exploring | HP 75/80] > look
+  [L1R1] Level 1: Crypt
+  Iron-bound Chest:
+    - Vial of Still Water [heals 21] (0.4kg, 25g)
+    - Vampiric Bone Shortsword [dmg 6] [drain 1] (2.0kg, 140g
+    - Grave Shroud [def 3] (3.0kg, 43g)
+  Exits: south, north
+[Exploring | HP 75/80] > take iron-bound
+  There is nothing like that here.
+
+  Delver  HP 75/80  ATK 10  DEF 3  Gold 28  XP 14  Carry 60.0kg  (unarmed)
 ```
 
 **The game listed a chest, let you take something out of it, and then said it does not exist.
 Which of those three statements is false?**
 
-> The third — "There is nothing like that here." ✍️ YOUR WORDS: (why)
+> The third — "There is nothing like that here." The chest is clearly in the room; the game just cannot take it because `Chest` is not an `Item`, so it has no weight, no value, and no type `addItem` will accept.
 
 
 **Open `items/Chest.java` and read the comment at the top. When was it written?** Week 4 — *"Note it is NOT an Item. In Week 13 it becomes part of a COMPOSITE..."*
@@ -148,11 +166,11 @@ $C src/main/java/dungeonforge/items/Chest.java | grep -c 'implements Item'
 
 Finish US-10.2, then play the game again and try `take <the chest's name>`.
 
-**What happened?** "There is nothing like that here." ✍️ YOUR WORDS: (confirm by playing commit `ad8ad66`, or from the Part B video)
+**What happened?** "There is nothing like that here." — the same refusal as before, even though `Chest` now implements `Item`.
 
 **Complete this sentence:**
 
-> A chest is an `Item` now and I still cannot pick one up, because ✍️ YOUR WORDS: 
+> A chest is an `Item` now and I still cannot pick one up, because the room's walk (`RoomContentsIterator`) is still flat: it hands out the floor items and the chest's *contents*, but never the chest itself, so `take` never sees it as a candidate.
 
 
 **Which story owns that, and which of its acceptance criteria?** US-10.3 — AC7 (and AC2, pre-order).
@@ -184,7 +202,7 @@ $ mvn test
 **US-10.1's tests were written against a class that no longer exists, and they still pass. In one
 sentence: what were they actually asserting?**
 
-> ✍️ YOUR WORDS: 
+> They asserted the contract a caller depends on — every item in the room is reached by one walk and `remove()` deletes it from wherever it lives — not the shape of the data or the class that happened to do the walking.
 
 
 ### The bug nobody reported
@@ -207,7 +225,7 @@ Only the contents of each room's chest.
 
 **What did it NOT count?** Anything lying on the floor.
 
-**Why was that invisible?** ✍️ YOUR WORDS: 
+**Why was that invisible?** Generation never puts loose items on a floor (everything starts inside a chest), so the missing floor branch only mattered after a player dropped something.
 
 **Paste your before-and-after measurement** — `totalLoot()` with nothing on the floor, then after
 dropping two items.
@@ -222,7 +240,7 @@ IteratorCompositeTest.countingLootNoLongerForgetsTheFloor  -- PASS
 **One sentence, and be careful with it: did Iterator FIND this bug?** *(There is a wrong answer
 that sounds good.)*
 
-> ✍️ YOUR WORDS: 
+> No — the pattern did not find it; I found it by reading `totalLoot()` before rewriting it, and writing the walk once (instead of once per collection) is what fixed it.
 
 
 ---
@@ -235,15 +253,19 @@ that sounds good.)*
 
 | File | Why not |
 |---|---|
-| `TurnSnapshot` | ✍️ YOUR WORDS:  |
-| `RoomPopulator` | ✍️ YOUR WORDS:  |
-| `CommandParser` (`describeRoom`) | ✍️ YOUR WORDS:  |
+| `TurnSnapshot` | Undo has to put each item back *where it was* (floor or chest), and the iterator deliberately forgets where an item lives. |
+| `RoomPopulator` | It *puts* a chest into the room; an iterator only reads what is already there. |
+| `CommandParser` (`describeRoom`) | The description has to show the chest *separately* from the floor, so it needs to know which items are inside the box. |
 
 **One of those three still reads the room's collections directly in your finished code. Which,
 and is that a failure to finish the refactor? Answer yes or no and defend it.**
 
+> `describeRoom()` in `CommandParser`. **No** — describing a room genuinely cares which things are boxes (it uses `getChests()` and `children()`), so treating everything uniformly there would make the output worse. A pattern is a tool, not an obligation.
+
 
 **For the other two: what fixed them — a better iterator, or something else?**
+
+> Something else: the Composite. Once `Chest` became an `Item`, the second collection disappeared — `RoomPopulator` just adds the chest to the floor, and `TurnSnapshot` walks the composite and records every container's contents in an `IdentityHashMap`.
 
 
 ---
@@ -254,22 +276,26 @@ and is that a failure to finish the refactor? Answer yes or no and defend it.**
 
 **Head First puts `add()` on the Component and lets leaves throw (p. 364). You did not.**
 
-**Name one thing a caller cannot write because of that choice.** ______
+**Name one thing a caller cannot write because of that choice.** `item.add(other)` on a plain `Item` — it does not compile; the caller has to know it holds a `Chest`.
 
-**Name one thing that cannot go wrong at run time because of it.** ______
+**Name one thing that cannot go wrong at run time because of it.** Calling `add()` on a leaf like a potion and having it throw an exception mid-game.
 
 **Which would you choose for a library used by strangers? Is that the same answer you gave for
 this codebase?**
+
+> For strangers I would lean toward transparency: they get one uniform interface, and a documented `UnsupportedOperationException` is something Java developers already know from `Arrays.asList`. For this codebase I chose safety, because one team owns every caller and a compile error is cheaper than a runtime error — so no, not the same answer, and the difference is who writes the callers.
 
 
 ### The two walks
 
 | | walks | means |
 |---|---|---|
-| `take <name>` | | |
-| `loot` | | |
+| `take <name>` | the whole tree, pre-order | you can take the chest itself *or* a single item inside it |
+| `loot` | the top level only | the chest comes up with its contents still inside it |
 
 **One sentence: what goes wrong if `loot` walks the tree?**
+
+> It queues a take for every item inside the chest too, so after the chest is picked up the rest fail with "There is nothing like that here." over and over — and every test still passes.
 
 
 ### Leaves
@@ -278,15 +304,19 @@ this codebase?**
 
 **One sentence on what that number says about the pattern.**
 
+> A composite can be added to an existing type hierarchy without any leaf learning that the tree exists — the `children()`/`isContainer()` defaults on `Item` did that work for them.
+
 
 ### Retro line
 
 | Pattern | Gave | Took |
 |---|---|---|
-| Iterator | | |
-| Composite | | |
+| Iterator | one walk over the room, `TakeCommand` lost its two copy-paste search methods, and `totalLoot()` stopped forgetting the floor | callers lose *where* an item lives, so code that needs location (undo, populate, describe) can't use it |
+| Composite | a chest is an `Item`: one collection, weight and value that roll up through any depth, `take` on a chest | no `add()` on `Item`, so code that adds things needs `instanceof Chest`; plus a tree that needs a stack-based iterator to walk |
 
 **And: the composite walk yields a container before its contents. Name the player-facing bug
 that comes back if you reverse it.**
+
+> With post-order the walk hands out the chest's contents *before* the chest, so any `take` that matches both — or a bare `take` with no name — grabs an item out of the box instead of the box itself, which is the "empty it item by item" behaviour US-10.2 set out to get rid of.
 
 
